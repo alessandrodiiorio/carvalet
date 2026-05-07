@@ -13,14 +13,14 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: {
-    default: "Car Walet",
-    template: "%s · Car Walet",
+    default: "Car Valet",
+    template: "%s · Car Valet",
   },
   description: "Gestione car valet per compagnie di noleggio",
-  applicationName: "Car Walet",
+  applicationName: "Car Valet",
   appleWebApp: {
     capable: true,
-    title: "Car Walet",
+    title: "Car Valet",
     statusBarStyle: "default",
   },
   formatDetection: {

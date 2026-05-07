@@ -1,7 +1,7 @@
 export default function manifest() {
   return {
-    name: 'Car Walet',
-    short_name: 'Car Walet',
+    name: 'Car Valet',
+    short_name: 'Car Valet',
     description: 'Gestione car valet per compagnie di noleggio',
     start_url: '/',
     display: 'standalone',

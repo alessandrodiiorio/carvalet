@@ -20,7 +20,7 @@ export default async function AppLayout({ children }) {
             </div>
             <div className="min-w-0">
               <p className="text-base font-bold leading-tight tracking-tight truncate">
-                Car Walet
+                Car Valet
               </p>
               <p className="text-xs text-indigo-200/90 truncate">
                 {nome} · <span className="capitalize">{ruolo}</span>

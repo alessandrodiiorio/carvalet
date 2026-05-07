@@ -1,5 +1,5 @@
 -- =====================================================================
--- Car Walet — schema iniziale del database
+-- Car Valet — schema iniziale del database
 -- Da eseguire in: Supabase Dashboard → SQL Editor → New query
 -- =====================================================================
 

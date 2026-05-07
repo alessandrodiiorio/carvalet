@@ -9,7 +9,7 @@ export default async function LoginPage({ searchParams }) {
     <main className="min-h-dvh flex items-center justify-center p-6 bg-slate-50">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow p-6 space-y-5">
         <div>
-          <h1 className="text-2xl font-bold">Car Walet</h1>
+          <h1 className="text-2xl font-bold">Car Valet</h1>
           <p className="text-sm text-slate-500">Accedi al tuo account</p>
         </div>
 
