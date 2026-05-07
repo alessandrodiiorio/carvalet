@@ -39,16 +39,29 @@ export default async function MovimentiPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h1 className="text-xl font-bold">Movimenti</h1>
-        {isTitolare(profilo) && (
+        <div className="flex items-center gap-2">
           <Link
-            href="/movimenti/nuovo"
-            className="rounded-lg bg-slate-900 text-white text-sm font-medium px-3 py-2 hover:bg-slate-800"
+            href="/movimenti/calendario"
+            aria-label="Calendario"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white text-sm font-medium px-3 py-2 hover:bg-slate-50"
           >
-            + Nuovo
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+              <rect x="3" y="4" width="18" height="18" rx="2" />
+              <path d="M16 2v4M8 2v4M3 10h18" />
+            </svg>
+            <span className="hidden sm:inline">Calendario</span>
           </Link>
-        )}
+          {isTitolare(profilo) && (
+            <Link
+              href="/movimenti/nuovo"
+              className="rounded-lg bg-slate-900 text-white text-sm font-medium px-3 py-2 hover:bg-slate-800"
+            >
+              + Nuovo
+            </Link>
+          )}
+        </div>
       </div>
 
       {error && (
