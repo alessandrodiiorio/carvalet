@@ -6,8 +6,13 @@ import {
   aggiornaMovimento,
   aggiornaStatoMovimento,
   eliminaMovimento,
+  iniziaTracking,
+  terminaTracking,
+  annullaTracking,
 } from '../actions'
 import MovimentoForm from '../MovimentoForm'
+import TransferTracker from '@/components/TransferTracker'
+import TracciaSummary from '@/components/TracciaSummary'
 
 const TIPO_LABEL = {
   ritiro: 'Ritiro',
@@ -81,6 +86,24 @@ export default async function MovimentoPage({ params, searchParams }) {
         <div className="rounded-lg bg-green-50 border border-green-200 text-green-700 text-sm p-3">
           {sp.info}
         </div>
+      )}
+
+      <TransferTracker
+        movimentoId={movimento.id}
+        inizioAt={movimento.inizio_at}
+        fineAt={movimento.fine_at}
+        azioneInizia={iniziaTracking}
+        azioneTermina={terminaTracking}
+        azioneAnnulla={annullaTracking}
+      />
+
+      {movimento.inizio_at && movimento.fine_at && (
+        <TracciaSummary
+          inizioAt={movimento.inizio_at}
+          fineAt={movimento.fine_at}
+          distanzaKm={movimento.distanza_km}
+          traccia={movimento.traccia}
+        />
       )}
 
       <div className="rounded-2xl bg-white shadow p-5 space-y-3">
