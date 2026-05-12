@@ -61,7 +61,10 @@ export default async function AppLayout({ children }) {
         </div>
       </header>
 
-      <main className="flex-1 max-w-3xl w-full mx-auto p-4 pb-28 sm:pb-32">
+      <main
+        className="flex-1 max-w-3xl w-full mx-auto p-4"
+        style={{ paddingBottom: 'calc(7rem + env(safe-area-inset-bottom))' }}
+      >
         {children}
       </main>
 
