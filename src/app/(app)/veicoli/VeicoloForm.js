@@ -1,3 +1,5 @@
+import ModelloPicker from '@/components/ModelloPicker'
+
 export default function VeicoloForm({
   action,
   veicolo,
@@ -37,12 +39,10 @@ export default function VeicoloForm({
         autoCapitalize="characters"
         placeholder="es. AB123CD"
       />
-      <Field
-        label="Modello *"
+      <ModelloPicker
         name="modello"
-        defaultValue={v.modello}
+        defaultValue={v.modello ?? ''}
         required
-        placeholder="es. Fiat Panda"
       />
 
       <div>

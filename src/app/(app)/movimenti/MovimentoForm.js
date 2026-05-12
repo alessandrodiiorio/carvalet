@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import ModelloPicker from '@/components/ModelloPicker'
 
 const TIPI = [
   { value: 'ritiro', label: 'Ritiro' },
@@ -111,11 +112,9 @@ export default function MovimentoForm({
               autoCapitalize="characters"
               placeholder="es. AB123CD"
             />
-            <Field
-              label="Modello *"
+            <ModelloPicker
               name="nuovo_modello"
               required={modalita === 'nuovo'}
-              placeholder="es. Fiat Panda"
             />
             <p className="text-xs text-slate-500">
               Il veicolo verrà aggiunto all&apos;anagrafica.
