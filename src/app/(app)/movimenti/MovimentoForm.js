@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import ModelloPicker from '@/components/ModelloPicker'
+import LuogoPicker from '@/components/LuogoPicker'
 
 const TIPI = [
   { value: 'ritiro', label: 'Ritiro' },
@@ -156,15 +157,15 @@ export default function MovimentoForm({
       </div>
 
       {/* Luoghi */}
-      <Field
+      <LuogoPicker
         label="Luogo di ritiro"
         name="luogo_ritiro"
-        defaultValue={m.luogo_ritiro}
+        defaultValue={m.luogo_ritiro ?? ''}
       />
-      <Field
+      <LuogoPicker
         label="Luogo di consegna"
         name="luogo_consegna"
-        defaultValue={m.luogo_consegna}
+        defaultValue={m.luogo_consegna ?? ''}
       />
 
       {/* Assegnato a */}
