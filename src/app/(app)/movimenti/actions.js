@@ -161,11 +161,21 @@ export async function iniziaTracking(formData) {
     redirect('/movimenti?error=' + encodeURIComponent('ID mancante.'))
   }
 
+  const luogo_ritiro = get(formData, 'luogo_ritiro')
+  const ora = new Date().toISOString()
+
+  const update = {
+    inizio_at: ora,
+    ritiro_effettivo_at: ora,
+    fine_at: null,
+    consegna_effettivo_at: null,
+    traccia: null,
+    distanza_km: null,
+  }
+  if (luogo_ritiro) update.luogo_ritiro = luogo_ritiro
+
   const supabase = await createClient()
-  const { error } = await supabase
-    .from('movimenti')
-    .update({ inizio_at: new Date().toISOString(), fine_at: null, traccia: null, distanza_km: null })
-    .eq('id', id)
+  const { error } = await supabase.from('movimenti').update(update).eq('id', id)
 
   if (error) {
     redirect(`/movimenti/${id}?error=` + encodeURIComponent(error.message))
@@ -180,6 +190,7 @@ export async function terminaTracking(formData) {
   const id = get(formData, 'id')
   const tracciaRaw = formData.get('traccia')
   const distanzaRaw = formData.get('distanza_km')
+  const luogo_consegna = get(formData, 'luogo_consegna')
 
   if (!id) {
     redirect('/movimenti?error=' + encodeURIComponent('ID mancante.'))
@@ -193,17 +204,19 @@ export async function terminaTracking(formData) {
   }
 
   const distanza_km = distanzaRaw ? Number(distanzaRaw) : null
+  const ora = new Date().toISOString()
+
+  const update = {
+    fine_at: ora,
+    consegna_effettivo_at: ora,
+    traccia,
+    distanza_km: Number.isFinite(distanza_km) ? distanza_km : null,
+    stato: 'completato',
+  }
+  if (luogo_consegna) update.luogo_consegna = luogo_consegna
 
   const supabase = await createClient()
-  const { error } = await supabase
-    .from('movimenti')
-    .update({
-      fine_at: new Date().toISOString(),
-      traccia,
-      distanza_km: Number.isFinite(distanza_km) ? distanza_km : null,
-      stato: 'completato',
-    })
-    .eq('id', id)
+  const { error } = await supabase.from('movimenti').update(update).eq('id', id)
 
   if (error) {
     redirect(`/movimenti/${id}?error=` + encodeURIComponent(error.message))
@@ -224,7 +237,14 @@ export async function annullaTracking(formData) {
   const supabase = await createClient()
   const { error } = await supabase
     .from('movimenti')
-    .update({ inizio_at: null, fine_at: null, traccia: null, distanza_km: null })
+    .update({
+      inizio_at: null,
+      fine_at: null,
+      ritiro_effettivo_at: null,
+      consegna_effettivo_at: null,
+      traccia: null,
+      distanza_km: null,
+    })
     .eq('id', id)
 
   if (error) {

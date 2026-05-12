@@ -37,6 +37,10 @@ export default function TracciaSummary({
   fineAt,
   distanzaKm,
   traccia,
+  ritiroEffettivoAt,
+  consegnaEffettivoAt,
+  luogoRitiro,
+  luogoConsegna,
 }) {
   const durataMs =
     inizioAt && fineAt
@@ -57,8 +61,8 @@ export default function TracciaSummary({
       </div>
 
       <div className="grid grid-cols-2 gap-2 text-sm">
-        <Row label="Inizio" value={formatDataOra(inizioAt)} />
-        <Row label="Fine" value={formatDataOra(fineAt)} />
+        <Row label="Ritiro effettivo" value={formatDataOra(ritiroEffettivoAt ?? inizioAt)} />
+        <Row label="Consegna effettiva" value={formatDataOra(consegnaEffettivoAt ?? fineAt)} />
         <Row label="Durata" value={formatDurata(durataMs)} />
         <Row
           label="Distanza"
@@ -67,6 +71,27 @@ export default function TracciaSummary({
         {velMedia && <Row label="Velocità media" value={`${velMedia} km/h`} />}
         <Row label="Punti GPS" value={punti} />
       </div>
+
+      {(luogoRitiro || luogoConsegna) && (
+        <div className="space-y-2 pt-2 border-t border-slate-200">
+          {luogoRitiro && (
+            <div>
+              <p className="text-[10px] uppercase text-slate-500 font-semibold">
+                Da
+              </p>
+              <p className="text-sm">{luogoRitiro}</p>
+            </div>
+          )}
+          {luogoConsegna && (
+            <div>
+              <p className="text-[10px] uppercase text-slate-500 font-semibold">
+                A
+              </p>
+              <p className="text-sm">{luogoConsegna}</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {mapsUrl && (
         <a

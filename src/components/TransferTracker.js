@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useTransition } from 'react'
 
-// Haversine in km
 function distanzaKm(a, b) {
   const R = 6371
   const toRad = (d) => (d * Math.PI) / 180
@@ -27,7 +26,37 @@ function formatDurata(ms) {
   return `${s}s`
 }
 
-const SOGLIA_MIN_METRI = 10 // filtra punti GPS troppo vicini
+const SOGLIA_MIN_METRI = 10
+
+async function reverseGeocode(lat, lon) {
+  try {
+    const r = await fetch(`/api/geo/reverse?lat=${lat}&lon=${lon}`)
+    const j = await r.json()
+    if (j?.error) return null
+    return j.short || j.label || null
+  } catch {
+    return null
+  }
+}
+
+function getPosizione() {
+  return new Promise((resolve, reject) => {
+    if (!('geolocation' in navigator)) {
+      reject(new Error('GPS non supportato'))
+      return
+    }
+    navigator.geolocation.getCurrentPosition(
+      (pos) =>
+        resolve({
+          lat: pos.coords.latitude,
+          lon: pos.coords.longitude,
+          acc: pos.coords.accuracy,
+        }),
+      (err) => reject(err),
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 5000 },
+    )
+  })
+}
 
 export default function TransferTracker({
   movimentoId,
@@ -37,23 +66,23 @@ export default function TransferTracker({
   azioneTermina,
   azioneAnnulla,
 }) {
-  const inProgressLocal = useRef(false)
   const [punti, setPunti] = useState([])
   const [distanza, setDistanza] = useState(0)
   const [errore, setErrore] = useState(null)
   const [now, setNow] = useState(Date.now())
+  const [statoInizio, setStatoInizio] = useState('idle') // idle | gps | invio
+  const [statoFine, setStatoFine] = useState('idle')
+  const [, startTransition] = useTransition()
   const watchIdRef = useRef(null)
 
   const tracking = !!inizioAt && !fineAt
 
-  // Tick per durata live
   useEffect(() => {
     if (!tracking) return
     const t = setInterval(() => setNow(Date.now()), 1000)
     return () => clearInterval(t)
   }, [tracking])
 
-  // Avvia/ferma GPS watchPosition quando tracking attivo
   useEffect(() => {
     if (!tracking) {
       if (watchIdRef.current != null) {
@@ -68,7 +97,6 @@ export default function TransferTracker({
       return
     }
 
-    inProgressLocal.current = true
     const cached = localStorage.getItem(`tracking_${movimentoId}`)
     if (cached) {
       try {
@@ -89,7 +117,7 @@ export default function TransferTracker({
         setPunti((prev) => {
           const last = prev[prev.length - 1]
           if (last) {
-            const dist = distanzaKm(last, nuovo) * 1000 // metri
+            const dist = distanzaKm(last, nuovo) * 1000
             if (dist < SOGLIA_MIN_METRI) return prev
             setDistanza((d) => {
               const nuovaDist = d + distanzaKm(last, nuovo)
@@ -126,8 +154,72 @@ export default function TransferTracker({
     ? new Date(fineAt).getTime() - new Date(inizioAt).getTime()
     : 0
 
+  async function handleInizia() {
+    setErrore(null)
+    setStatoInizio('gps')
+    let luogo = null
+    try {
+      const pos = await getPosizione()
+      luogo = await reverseGeocode(pos.lat, pos.lon)
+    } catch (e) {
+      setErrore('GPS: ' + (e?.message || 'errore'))
+      // Procedi anche senza luogo
+    }
+    setStatoInizio('invio')
+    const fd = new FormData()
+    fd.set('id', movimentoId)
+    if (luogo) fd.set('luogo_ritiro', luogo)
+    startTransition(async () => {
+      try {
+        await azioneInizia(fd)
+      } catch (e) {
+        setErrore(String(e?.message ?? e))
+      } finally {
+        setStatoInizio('idle')
+      }
+    })
+  }
+
+  async function handleTermina() {
+    setErrore(null)
+    setStatoFine('gps')
+    let luogo = null
+    const last = punti[punti.length - 1]
+    try {
+      if (last) {
+        luogo = await reverseGeocode(last.lat, last.lon)
+      } else {
+        const pos = await getPosizione()
+        luogo = await reverseGeocode(pos.lat, pos.lon)
+      }
+    } catch (e) {
+      setErrore('GPS: ' + (e?.message || 'errore'))
+    }
+    setStatoFine('invio')
+    const fd = new FormData()
+    fd.set('id', movimentoId)
+    fd.set('traccia', JSON.stringify(punti))
+    fd.set('distanza_km', distanza.toFixed(3))
+    if (luogo) fd.set('luogo_consegna', luogo)
+    localStorage.removeItem(`tracking_${movimentoId}`)
+    startTransition(async () => {
+      try {
+        await azioneTermina(fd)
+      } catch (e) {
+        setErrore(String(e?.message ?? e))
+      } finally {
+        setStatoFine('idle')
+      }
+    })
+  }
+
   if (!inizioAt) {
-    // Stato: non avviato
+    const labelInizia =
+      statoInizio === 'gps'
+        ? 'Acquisizione GPS…'
+        : statoInizio === 'invio'
+        ? 'Avvio…'
+        : '▶ Inizia trasfer'
     return (
       <div className="rounded-2xl bg-white shadow p-5 space-y-3">
         <div className="flex items-center gap-3">
@@ -139,25 +231,30 @@ export default function TransferTracker({
           <div>
             <p className="font-semibold">Tracking trasfer</p>
             <p className="text-xs text-slate-500">
-              Avvia per registrare percorso e tempi via GPS.
+              Registra percorso, tempi e luoghi automaticamente.
             </p>
           </div>
         </div>
-        <form action={azioneInizia}>
-          <input type="hidden" name="id" value={movimentoId} />
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-indigo-600 text-white font-semibold py-2.5 hover:bg-indigo-700 active:bg-indigo-800 transition-colors"
-          >
-            ▶ Inizia trasfer
-          </button>
-        </form>
+        {errore && <p className="text-xs text-red-600">{errore}</p>}
+        <button
+          type="button"
+          onClick={handleInizia}
+          disabled={statoInizio !== 'idle'}
+          className="w-full rounded-lg bg-indigo-600 text-white font-semibold py-2.5 hover:bg-indigo-700 active:bg-indigo-800 disabled:opacity-60 transition-colors"
+        >
+          {labelInizia}
+        </button>
       </div>
     )
   }
 
   if (tracking) {
-    // Stato: in corso
+    const labelTermina =
+      statoFine === 'gps'
+        ? 'Acquisizione GPS…'
+        : statoFine === 'invio'
+        ? 'Chiusura…'
+        : '■ Termina'
     return (
       <div className="rounded-2xl bg-white shadow p-5 space-y-3 border-2 border-indigo-200">
         <div className="flex items-center gap-3">
@@ -174,9 +271,7 @@ export default function TransferTracker({
           <Stat label="Punti" value={punti.length} />
         </div>
 
-        {errore && (
-          <p className="text-xs text-red-600">{errore}</p>
-        )}
+        {errore && <p className="text-xs text-red-600">{errore}</p>}
 
         <p className="text-xs text-slate-500 text-center">
           Mantieni schermo acceso. GPS attivo.
@@ -193,18 +288,14 @@ export default function TransferTracker({
               Annulla
             </button>
           </form>
-          <form action={azioneTermina}>
-            <input type="hidden" name="id" value={movimentoId} />
-            <input type="hidden" name="traccia" value={JSON.stringify(punti)} />
-            <input type="hidden" name="distanza_km" value={distanza.toFixed(3)} />
-            <button
-              type="submit"
-              className="w-full rounded-lg bg-green-600 text-white font-semibold py-2.5 hover:bg-green-700 active:bg-green-800"
-              onClick={() => localStorage.removeItem(`tracking_${movimentoId}`)}
-            >
-              ■ Termina
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={handleTermina}
+            disabled={statoFine !== 'idle'}
+            className="w-full rounded-lg bg-green-600 text-white font-semibold py-2.5 hover:bg-green-700 active:bg-green-800 disabled:opacity-60"
+          >
+            {labelTermina}
+          </button>
         </div>
       </div>
     )

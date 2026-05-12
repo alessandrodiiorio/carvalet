@@ -103,6 +103,10 @@ export default async function MovimentoPage({ params, searchParams }) {
           fineAt={movimento.fine_at}
           distanzaKm={movimento.distanza_km}
           traccia={movimento.traccia}
+          ritiroEffettivoAt={movimento.ritiro_effettivo_at}
+          consegnaEffettivoAt={movimento.consegna_effettivo_at}
+          luogoRitiro={movimento.luogo_ritiro}
+          luogoConsegna={movimento.luogo_consegna}
         />
       )}
 
