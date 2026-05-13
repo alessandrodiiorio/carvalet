@@ -1,7 +1,6 @@
-import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getUtente, isTitolare } from '@/lib/auth'
-import { cambiaRuolo } from './actions'
+import { cambiaRuolo, creaCollaboratore } from './actions'
 
 export const metadata = {
   title: 'Collaboratori',
@@ -9,10 +8,6 @@ export const metadata = {
 
 export default async function CollaboratoriPage({ searchParams }) {
   const { profilo, user, supabase } = await getUtente()
-  const h = await headers()
-  const host = h.get('x-forwarded-host') || h.get('host') || 'localhost:3000'
-  const proto = h.get('x-forwarded-proto') || 'https'
-  const signupUrl = `${proto}://${host}/signup`
 
   if (!isTitolare(profilo)) {
     redirect('/dashboard')
@@ -65,16 +60,78 @@ export default async function CollaboratoriPage({ searchParams }) {
             </svg>
           </div>
           <div className="flex-1 min-w-0">
-            <p className="font-semibold text-sm">Invita un nuovo collaboratore</p>
+            <p className="font-semibold text-sm">Crea nuovo utente</p>
             <p className="text-xs text-slate-500 mt-0.5">
-              Condividi questo link: il nuovo utente si registra e tu lo trovi qui sotto come{' '}
-              <span className="font-medium">collaboratore</span>.
+              Compila e crea direttamente. Comunica password al collaboratore.
             </p>
-            <code className="mt-2 block break-all text-xs bg-slate-50 border border-slate-200 rounded-md p-2 font-mono">
-              {signupUrl}
-            </code>
           </div>
         </div>
+
+        <form action={creaCollaboratore} className="space-y-3">
+          <div>
+            <label htmlFor="nuovo_nome" className="block text-xs font-medium mb-1">
+              Nome *
+            </label>
+            <input
+              id="nuovo_nome"
+              name="nome"
+              type="text"
+              required
+              autoComplete="off"
+              placeholder="Mario Rossi"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
+            />
+          </div>
+          <div>
+            <label htmlFor="nuovo_email" className="block text-xs font-medium mb-1">
+              Email *
+            </label>
+            <input
+              id="nuovo_email"
+              name="email"
+              type="email"
+              required
+              autoComplete="off"
+              placeholder="utente@example.com"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
+            />
+          </div>
+          <div>
+            <label htmlFor="nuovo_password" className="block text-xs font-medium mb-1">
+              Password * <span className="text-slate-400 font-normal">(min 8 caratteri)</span>
+            </label>
+            <input
+              id="nuovo_password"
+              name="password"
+              type="text"
+              required
+              minLength={8}
+              autoComplete="off"
+              placeholder="Password iniziale"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900 font-mono"
+            />
+          </div>
+          <div>
+            <label htmlFor="nuovo_ruolo" className="block text-xs font-medium mb-1">
+              Ruolo *
+            </label>
+            <select
+              id="nuovo_ruolo"
+              name="ruolo"
+              defaultValue="collaboratore"
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
+            >
+              <option value="collaboratore">Collaboratore</option>
+              <option value="titolare">Titolare</option>
+            </select>
+          </div>
+          <button
+            type="submit"
+            className="w-full rounded-lg bg-indigo-600 text-white font-semibold py-2.5 hover:bg-indigo-700 active:bg-indigo-800 transition-colors"
+          >
+            Crea utente
+          </button>
+        </form>
       </section>
 
       <ul className="space-y-2">

@@ -3,6 +3,97 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { getAdminClient } from '@/lib/supabase/admin'
+
+async function assertTitolare() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    redirect('/login')
+  }
+  const { data: profilo } = await supabase
+    .from('profili')
+    .select('ruolo')
+    .eq('id', user.id)
+    .single()
+  if (profilo?.ruolo !== 'titolare') {
+    redirect('/dashboard?error=' + encodeURIComponent('Non autorizzato.'))
+  }
+  return { supabase, user }
+}
+
+export async function creaCollaboratore(formData) {
+  await assertTitolare()
+
+  const nome = (formData.get('nome') || '').toString().trim()
+  const email = (formData.get('email') || '').toString().trim().toLowerCase()
+  const password = (formData.get('password') || '').toString()
+  const ruolo = (formData.get('ruolo') || 'collaboratore').toString()
+
+  if (!nome) {
+    redirect('/collaboratori?error=' + encodeURIComponent('Nome obbligatorio.'))
+  }
+  if (!email || !/^\S+@\S+\.\S+$/.test(email)) {
+    redirect('/collaboratori?error=' + encodeURIComponent('Email non valida.'))
+  }
+  if (!password || password.length < 8) {
+    redirect(
+      '/collaboratori?error=' +
+        encodeURIComponent('Password obbligatoria (min 8 caratteri).'),
+    )
+  }
+  if (!['titolare', 'collaboratore'].includes(ruolo)) {
+    redirect('/collaboratori?error=' + encodeURIComponent('Ruolo non valido.'))
+  }
+
+  let admin
+  try {
+    admin = getAdminClient()
+  } catch (e) {
+    redirect('/collaboratori?error=' + encodeURIComponent(e.message))
+  }
+
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { nome },
+  })
+
+  if (error) {
+    redirect('/collaboratori?error=' + encodeURIComponent(error.message))
+  }
+
+  const nuovoId = data?.user?.id
+  if (!nuovoId) {
+    redirect(
+      '/collaboratori?error=' + encodeURIComponent('Creazione utente fallita.'),
+    )
+  }
+
+  // Trigger handle_new_user crea profilo con ruolo default 'collaboratore'.
+  // Aggiorno nome (caso fallback) e ruolo se richiesto titolare.
+  const update = { nome }
+  if (ruolo === 'titolare') update.ruolo = 'titolare'
+
+  const { error: upErr } = await admin
+    .from('profili')
+    .update(update)
+    .eq('id', nuovoId)
+
+  if (upErr) {
+    redirect(
+      '/collaboratori?error=' +
+        encodeURIComponent('Utente creato ma update profilo fallito: ' + upErr.message),
+    )
+  }
+
+  revalidatePath('/collaboratori')
+  redirect(
+    '/collaboratori?info=' +
+      encodeURIComponent(`Utente "${nome}" creato come ${ruolo}.`),
+  )
+}
 
 export async function cambiaRuolo(formData) {
   const id = formData.get('id')
