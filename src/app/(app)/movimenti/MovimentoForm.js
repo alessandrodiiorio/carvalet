@@ -35,6 +35,7 @@ export default function MovimentoForm({
   const m = movimento ?? {}
 
   const [modalita, setModalita] = useState('esistente')
+  const [modalita2, setModalita2] = useState('esistente')
   const [dataLocale, setDataLocale] = useState('')
   const [tipo, setTipo] = useState(m.tipo ?? 'ritiro_consegna')
   const [dueVeicoli, setDueVeicoli] = useState(!!m.veicolo_consegna_id)
@@ -164,29 +165,94 @@ export default function MovimentoForm({
           </div>
 
           {dueVeicoli && (
-            <div>
-              <label htmlFor="veicolo_consegna_id" className="block text-sm font-medium mb-1">
-                Veicolo consegna *
-              </label>
-              <select
-                id="veicolo_consegna_id"
-                name="veicolo_consegna_id"
-                required={dueVeicoli}
-                defaultValue={m.veicolo_consegna_id ?? ''}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
-              >
-                <option value="" disabled>Seleziona veicolo per consegna</option>
-                {veicoli.map((v) => (
-                  <option key={v.id} value={v.id}>
-                    {v.targa} — {v.modello}
-                    {v.compagnie?.nome ? ` (${v.compagnie.nome})` : ''}
-                  </option>
-                ))}
-              </select>
-              <p className="text-xs text-slate-500 mt-1">
-                Veicolo diverso ritirato/consegnato nel secondo segmento.
-              </p>
-            </div>
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-semibold">Veicolo consegna</legend>
+
+              {!isModifica && (
+                <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-lg">
+                  <ToggleBtn
+                    active={modalita2 === 'esistente'}
+                    onClick={() => setModalita2('esistente')}
+                  >
+                    Esistente
+                  </ToggleBtn>
+                  <ToggleBtn
+                    active={modalita2 === 'nuovo'}
+                    onClick={() => setModalita2('nuovo')}
+                  >
+                    Nuovo
+                  </ToggleBtn>
+                </div>
+              )}
+
+              <input
+                type="hidden"
+                name="modalita_veicolo_2"
+                value={isModifica ? 'esistente' : modalita2}
+              />
+
+              {(isModifica || modalita2 === 'esistente') && (
+                <div>
+                  <label htmlFor="veicolo_consegna_id" className="sr-only">
+                    Veicolo consegna
+                  </label>
+                  <select
+                    id="veicolo_consegna_id"
+                    name="veicolo_consegna_id"
+                    required={dueVeicoli && (isModifica || modalita2 === 'esistente')}
+                    defaultValue={m.veicolo_consegna_id ?? ''}
+                    className="w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
+                  >
+                    <option value="" disabled>Seleziona veicolo per consegna</option>
+                    {veicoli.map((v) => (
+                      <option key={v.id} value={v.id}>
+                        {v.targa} — {v.modello}
+                        {v.compagnie?.nome ? ` (${v.compagnie.nome})` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {!isModifica && modalita2 === 'nuovo' && (
+                <div className="space-y-3 rounded-lg bg-slate-50 p-3">
+                  <div>
+                    <label
+                      htmlFor="nuovo_consegna_compagnia_id"
+                      className="block text-sm font-medium mb-1"
+                    >
+                      Compagnia *
+                    </label>
+                    <select
+                      id="nuovo_consegna_compagnia_id"
+                      name="nuovo_consegna_compagnia_id"
+                      required={modalita2 === 'nuovo'}
+                      defaultValue=""
+                      className="w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
+                    >
+                      <option value="" disabled>Seleziona</option>
+                      {compagnie.map((c) => (
+                        <option key={c.id} value={c.id}>{c.nome}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <Field
+                    label="Targa *"
+                    name="nuova_consegna_targa"
+                    required={modalita2 === 'nuovo'}
+                    autoCapitalize="characters"
+                    placeholder="es. AB123CD"
+                  />
+                  <ModelloPicker
+                    name="nuovo_consegna_modello"
+                    required={modalita2 === 'nuovo'}
+                  />
+                  <p className="text-xs text-slate-500">
+                    Il veicolo verrà aggiunto all&apos;anagrafica.
+                  </p>
+                </div>
+              )}
+            </fieldset>
           )}
         </div>
       )}

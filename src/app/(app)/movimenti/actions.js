@@ -12,19 +12,25 @@ function get(formData, k) {
   return v && v.toString().trim() !== '' ? v.toString().trim() : null
 }
 
-async function risolviVeicolo(supabase, formData) {
-  const modalita = formData.get('modalita_veicolo')
+async function risolviVeicolo(supabase, formData, slot = 1) {
+  const prefisso = slot === 2 ? 'nuovo_consegna_' : 'nuovo_'
+  const fieldId = slot === 2 ? 'veicolo_consegna_id' : 'veicolo_id'
+  const fieldModalita = slot === 2 ? 'modalita_veicolo_2' : 'modalita_veicolo'
+  const fieldTarga = slot === 2 ? 'nuova_consegna_targa' : 'nuova_targa'
+  const fieldCompagnia = `${prefisso}compagnia_id`
+  const fieldModello = `${prefisso}modello`
+
+  const modalita = formData.get(fieldModalita)
 
   if (modalita === 'esistente') {
-    const veicolo_id = get(formData, 'veicolo_id')
+    const veicolo_id = get(formData, fieldId)
     if (!veicolo_id) return { errore: 'Seleziona un veicolo.' }
     return { veicolo_id }
   }
 
-  // modalita === 'nuovo'
-  const compagnia_id = get(formData, 'nuovo_compagnia_id')
-  const targaRaw = get(formData, 'nuova_targa')
-  const modello = get(formData, 'nuovo_modello')
+  const compagnia_id = get(formData, fieldCompagnia)
+  const targaRaw = get(formData, fieldTarga)
+  const modello = get(formData, fieldModello)
 
   if (!compagnia_id || !targaRaw || !modello) {
     return { errore: 'Per creare un nuovo veicolo servono compagnia, targa e modello.' }
@@ -58,25 +64,22 @@ function leggiMovimentoBase(formData) {
   const luogo_consegna = get(formData, 'luogo_consegna')
   const note = get(formData, 'note')
   const assegnato_a = get(formData, 'assegnato_a')
-  const veicolo_consegna_id =
-    tipo === 'ritiro_consegna' ? get(formData, 'veicolo_consegna_id') : null
 
   if (!tipo || !TIPI.includes(tipo)) return { errore: 'Tipo movimento non valido.' }
   if (!STATI.includes(stato)) return { errore: 'Stato non valido.' }
   if (!data_ora) return { errore: 'Data e ora obbligatorie.' }
 
   return {
-    dati: {
-      tipo,
-      stato,
-      data_ora,
-      luogo_ritiro,
-      luogo_consegna,
-      note,
-      assegnato_a,
-      veicolo_consegna_id,
-    },
+    dati: { tipo, stato, data_ora, luogo_ritiro, luogo_consegna, note, assegnato_a },
   }
+}
+
+function ha2Veicoli(formData) {
+  if (formData.get('tipo') !== 'ritiro_consegna') return false
+  const modalita2 = formData.get('modalita_veicolo_2')
+  if (modalita2 === 'nuovo') return true
+  const id = (formData.get('veicolo_consegna_id') || '').toString().trim()
+  return id.length > 0
 }
 
 export async function creaMovimento(formData) {
@@ -87,9 +90,18 @@ export async function creaMovimento(formData) {
 
   const supabase = await createClient()
 
-  const veicolo = await risolviVeicolo(supabase, formData)
+  const veicolo = await risolviVeicolo(supabase, formData, 1)
   if (veicolo.errore) {
     redirect('/movimenti/nuovo?error=' + encodeURIComponent(veicolo.errore))
+  }
+
+  let veicolo_consegna_id = null
+  if (ha2Veicoli(formData)) {
+    const v2 = await risolviVeicolo(supabase, formData, 2)
+    if (v2.errore) {
+      redirect('/movimenti/nuovo?error=' + encodeURIComponent(v2.errore))
+    }
+    veicolo_consegna_id = v2.veicolo_id
   }
 
   const {
@@ -101,6 +113,7 @@ export async function creaMovimento(formData) {
     .insert({
       ...base.dati,
       veicolo_id: veicolo.veicolo_id,
+      veicolo_consegna_id,
       creato_da: user?.id ?? null,
     })
     .select('id')
@@ -126,10 +139,15 @@ export async function aggiornaMovimento(id, formData) {
     redirect(`/movimenti/${id}?error=` + encodeURIComponent('Seleziona un veicolo.'))
   }
 
+  const veicolo_consegna_id =
+    base.dati.tipo === 'ritiro_consegna'
+      ? get(formData, 'veicolo_consegna_id')
+      : null
+
   const supabase = await createClient()
   const { error } = await supabase
     .from('movimenti')
-    .update({ ...base.dati, veicolo_id })
+    .update({ ...base.dati, veicolo_id, veicolo_consegna_id })
     .eq('id', id)
 
   if (error) {
