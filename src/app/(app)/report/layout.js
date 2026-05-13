@@ -1,6 +1,10 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
+import { getUtente, isTitolare } from '@/lib/auth'
 
-export default function ReportLayout({ children }) {
+export default async function ReportLayout({ children }) {
+  const { profilo } = await getUtente()
+  if (!isTitolare(profilo)) redirect('/movimenti')
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold print:hidden">Report</h1>

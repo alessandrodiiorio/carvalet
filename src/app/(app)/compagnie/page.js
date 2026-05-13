@@ -1,8 +1,10 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { getUtente, isTitolare } from '@/lib/auth'
 
 export default async function CompagniePage() {
   const { profilo, supabase } = await getUtente()
+  if (!isTitolare(profilo)) redirect('/movimenti')
 
   const { data: compagnie, error } = await supabase
     .from('compagnie')

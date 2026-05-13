@@ -59,16 +59,24 @@ const NAV = [
   },
 ]
 
-export default function BottomNav() {
+export default function BottomNav({ ruolo = 'collaboratore' }) {
   const pathname = usePathname() || ''
+  const visibili =
+    ruolo === 'titolare'
+      ? NAV
+      : NAV.filter((n) => n.href === '/movimenti' || n.href === '/veicoli')
+  const cols = visibili.length
 
   return (
     <nav
       className="print:hidden fixed bottom-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-t border-slate-200 shadow-[0_-4px_12px_rgba(15,23,42,0.08)]"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
-      <div className="max-w-3xl mx-auto grid grid-cols-5">
-        {NAV.map((item) => {
+      <div
+        className="max-w-3xl mx-auto grid"
+        style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+      >
+        {visibili.map((item) => {
           const isActive =
             item.href === '/dashboard'
               ? pathname === '/dashboard'

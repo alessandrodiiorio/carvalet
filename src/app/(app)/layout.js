@@ -68,7 +68,7 @@ export default async function AppLayout({ children }) {
         {children}
       </main>
 
-      <BottomNav />
+      <BottomNav ruolo={ruolo} />
     </div>
   )
 }

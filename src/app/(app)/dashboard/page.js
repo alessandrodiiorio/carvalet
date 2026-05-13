@@ -1,8 +1,10 @@
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { getUtente, isTitolare } from '@/lib/auth'
 
 export default async function DashboardPage() {
   const { profilo, supabase } = await getUtente()
+  if (!isTitolare(profilo)) redirect('/movimenti')
 
   const [
     { count: nCompagnie },
