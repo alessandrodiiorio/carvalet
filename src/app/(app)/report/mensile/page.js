@@ -24,11 +24,13 @@ export default async function ReportMensilePage({ searchParams }) {
     supabase
       .from('movimenti')
       .select(`
-        id, tipo, stato,
-        veicoli!movimenti_veicolo_id_fkey ( compagnia_id, compagnie ( nome ) )
+        id, tipo, stato, data_ora, luogo_ritiro, luogo_consegna,
+        veicoli!movimenti_veicolo_id_fkey ( targa, modello, compagnia_id, compagnie ( nome ) ),
+        veicolo_consegna:veicoli!movimenti_veicolo_consegna_id_fkey ( targa, modello )
       `)
       .gte('data_ora', da)
-      .lt('data_ora', a),
+      .lt('data_ora', a)
+      .order('data_ora', { ascending: true }),
     supabase.from('tariffe').select('compagnia_id, tipo, prezzo'),
   ])
 
@@ -59,6 +61,7 @@ export default async function ReportMensilePage({ searchParams }) {
         totale: 0,
         totaleMovimenti: 0,
         totaleCompletati: 0,
+        dettagli: [],
       }
     }
 
@@ -75,6 +78,19 @@ export default async function ReportMensilePage({ searchParams }) {
           c.totale += slot.prezzo
         }
       }
+      c.dettagli.push({
+        id: m.id,
+        data_ora: m.data_ora,
+        tipo: m.tipo,
+        stato: m.stato,
+        targa: m.veicoli?.targa,
+        modello: m.veicoli?.modello,
+        targa2: m.veicolo_consegna?.targa,
+        modello2: m.veicolo_consegna?.modello,
+        luogo_ritiro: m.luogo_ritiro,
+        luogo_consegna: m.luogo_consegna,
+        prezzo: slot.prezzo,
+      })
     }
   }
 
@@ -143,10 +159,32 @@ export default async function ReportMensilePage({ searchParams }) {
   )
 }
 
+const TIPO_LABEL_SHORT = {
+  ritiro: 'R',
+  consegna: 'C',
+  ritiro_consegna: 'R+C',
+}
+
+const STATO_STYLE = {
+  programmato: 'bg-amber-100 text-amber-800',
+  completato: 'bg-green-100 text-green-800',
+  annullato: 'bg-slate-100 text-slate-600',
+}
+
+function formatGiornoOra(iso) {
+  if (!iso) return ''
+  return new Date(iso).toLocaleString('it-IT', {
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 function CompagniaBlock({ compagnia }) {
   return (
-    <section>
-      <div className="flex items-baseline justify-between mb-2">
+    <section className="space-y-3">
+      <div className="flex items-baseline justify-between">
         <h3 className="font-semibold">{compagnia.nome}</h3>
         <p className="text-sm">
           <span className="text-slate-500">Totale: </span>
@@ -190,6 +228,77 @@ function CompagniaBlock({ compagnia }) {
           </tr>
         </tbody>
       </table>
+
+      {compagnia.dettagli.length > 0 && (
+        <details className="group" open>
+          <summary className="cursor-pointer text-xs font-semibold text-slate-600 hover:text-slate-900 print:hidden select-none">
+            Dettagli movimenti ({compagnia.dettagli.length}) ▾
+          </summary>
+          <div className="hidden print:block text-xs font-semibold text-slate-600 mt-2">
+            Dettagli movimenti
+          </div>
+          <table className="w-full text-xs border-collapse mt-2">
+            <thead>
+              <tr className="border-b border-slate-200 text-slate-500">
+                <th className="text-left py-1 font-normal">Data/ora</th>
+                <th className="text-left py-1 font-normal">Veicolo</th>
+                <th className="text-left py-1 font-normal">Tipo</th>
+                <th className="text-left py-1 font-normal">Stato</th>
+                <th className="text-right py-1 font-normal">Importo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {compagnia.dettagli.map((d) => (
+                <tr key={d.id} className="border-b border-slate-100 align-top">
+                  <td className="py-1.5 whitespace-nowrap font-mono text-[11px]">
+                    {formatGiornoOra(d.data_ora)}
+                  </td>
+                  <td className="py-1.5">
+                    <p className="font-semibold tracking-wide">
+                      {d.targa || '—'}
+                      {d.targa2 && (
+                        <span className="text-slate-500"> → {d.targa2}</span>
+                      )}
+                    </p>
+                    {(d.modello || d.modello2) && (
+                      <p className="text-[10px] text-slate-500 truncate max-w-[180px]">
+                        {d.modello}
+                        {d.modello2 ? ` / ${d.modello2}` : ''}
+                      </p>
+                    )}
+                  </td>
+                  <td className="py-1.5">{TIPO_LABEL_SHORT[d.tipo] ?? d.tipo}</td>
+                  <td className="py-1.5">
+                    <span
+                      className={
+                        'inline-block text-[10px] font-medium px-1.5 py-0.5 rounded-full ' +
+                        (STATO_STYLE[d.stato] ?? 'bg-slate-100 text-slate-600')
+                      }
+                    >
+                      {d.stato}
+                    </span>
+                  </td>
+                  <td className="py-1.5 text-right whitespace-nowrap">
+                    {d.prezzo != null
+                      ? d.stato === 'completato'
+                        ? (
+                          <span className="font-semibold text-green-700">
+                            {formatPrezzo(d.prezzo)}
+                          </span>
+                        )
+                        : (
+                          <span className="text-slate-400">
+                            {formatPrezzo(d.prezzo)}
+                          </span>
+                        )
+                      : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      )}
     </section>
   )
 }
