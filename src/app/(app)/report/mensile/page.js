@@ -25,7 +25,7 @@ export default async function ReportMensilePage({ searchParams }) {
       .from('movimenti')
       .select(`
         id, tipo, stato,
-        veicoli ( compagnia_id, compagnie ( nome ) )
+        veicoli!movimenti_veicolo_id_fkey ( compagnia_id, compagnie ( nome ) )
       `)
       .gte('data_ora', da)
       .lt('data_ora', a),

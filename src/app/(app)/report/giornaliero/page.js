@@ -30,7 +30,8 @@ export default async function ReportGiornalieroPage({ searchParams }) {
     .from('movimenti')
     .select(`
       id, tipo, stato, data_ora, luogo_ritiro, luogo_consegna, note,
-      veicoli ( targa, modello, compagnie ( nome ) ),
+      veicoli!movimenti_veicolo_id_fkey ( targa, modello, compagnie ( nome ) ),
+      veicolo_consegna:veicoli!movimenti_veicolo_consegna_id_fkey ( targa, modello ),
       assegnato:profili!movimenti_assegnato_a_fkey ( nome )
     `)
     .gte('data_ora', da)
