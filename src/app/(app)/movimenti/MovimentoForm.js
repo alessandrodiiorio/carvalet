@@ -36,16 +36,20 @@ export default function MovimentoForm({
 
   const [modalita, setModalita] = useState('esistente')
   const [dataLocale, setDataLocale] = useState('')
+  const [tipo, setTipo] = useState(m.tipo ?? 'ritiro_consegna')
+  const [dueVeicoli, setDueVeicoli] = useState(!!m.veicolo_consegna_id)
   useEffect(() => {
     if (m.data_ora) setDataLocale(isoToLocalInput(m.data_ora))
   }, [m.data_ora])
   const dataIso = dataLocale ? new Date(dataLocale).toISOString() : ''
+  const mostraDueVeicoli = tipo === 'ritiro_consegna' && dueVeicoli
+  const labelPrimoVeicolo = mostraDueVeicoli ? 'Veicolo ritiro' : 'Veicolo'
 
   return (
     <form action={action} className="space-y-5">
       {/* Selettore veicolo */}
       <fieldset className="space-y-3">
-        <legend className="text-sm font-semibold">Veicolo</legend>
+        <legend className="text-sm font-semibold">{labelPrimoVeicolo}</legend>
 
         {!isModifica && (
           <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-lg">
@@ -68,7 +72,7 @@ export default function MovimentoForm({
 
         {(isModifica || modalita === 'esistente') && (
           <div>
-            <label htmlFor="veicolo_id" className="sr-only">Veicolo</label>
+            <label htmlFor="veicolo_id" className="sr-only">{labelPrimoVeicolo}</label>
             <select
               id="veicolo_id"
               name="veicolo_id"
@@ -131,7 +135,8 @@ export default function MovimentoForm({
           id="tipo"
           name="tipo"
           required
-          defaultValue={m.tipo ?? 'ritiro_consegna'}
+          value={tipo}
+          onChange={(e) => setTipo(e.target.value)}
           className="w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
         >
           {TIPI.map((t) => (
@@ -139,6 +144,52 @@ export default function MovimentoForm({
           ))}
         </select>
       </div>
+
+      {/* Toggle 2 veicoli (solo ritiro_consegna) */}
+      {tipo === 'ritiro_consegna' && (
+        <div className="space-y-3">
+          <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-lg">
+            <ToggleBtn
+              active={!dueVeicoli}
+              onClick={() => setDueVeicoli(false)}
+            >
+              Stesso veicolo
+            </ToggleBtn>
+            <ToggleBtn
+              active={dueVeicoli}
+              onClick={() => setDueVeicoli(true)}
+            >
+              2 veicoli diversi
+            </ToggleBtn>
+          </div>
+
+          {dueVeicoli && (
+            <div>
+              <label htmlFor="veicolo_consegna_id" className="block text-sm font-medium mb-1">
+                Veicolo consegna *
+              </label>
+              <select
+                id="veicolo_consegna_id"
+                name="veicolo_consegna_id"
+                required={dueVeicoli}
+                defaultValue={m.veicolo_consegna_id ?? ''}
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
+              >
+                <option value="" disabled>Seleziona veicolo per consegna</option>
+                {veicoli.map((v) => (
+                  <option key={v.id} value={v.id}>
+                    {v.targa} — {v.modello}
+                    {v.compagnie?.nome ? ` (${v.compagnie.nome})` : ''}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500 mt-1">
+                Veicolo diverso ritirato/consegnato nel secondo segmento.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Data e ora */}
       <div>

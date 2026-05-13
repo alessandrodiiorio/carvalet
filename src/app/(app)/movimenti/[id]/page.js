@@ -48,7 +48,8 @@ export default async function MovimentoPage({ params, searchParams }) {
       .from('movimenti')
       .select(`
         *,
-        veicoli ( id, targa, modello, compagnie ( nome ) ),
+        veicoli!movimenti_veicolo_id_fkey ( id, targa, modello, compagnie ( nome ) ),
+        veicolo_consegna:veicoli!movimenti_veicolo_consegna_id_fkey ( id, targa, modello, compagnie ( nome ) ),
         assegnato:profili!movimenti_assegnato_a_fkey ( id, nome )
       `)
       .eq('id', id)
@@ -173,9 +174,19 @@ export default async function MovimentoPage({ params, searchParams }) {
 }
 
 function CollaboratorView({ movimento }) {
+  const vc = movimento.veicolo_consegna
   return (
     <div className="rounded-2xl bg-white shadow p-5 space-y-2 text-sm">
-      <Row label="Veicolo" value={`${movimento.veicoli?.targa ?? '—'} · ${movimento.veicoli?.modello ?? ''}`} />
+      <Row
+        label={vc ? 'Veicolo ritiro' : 'Veicolo'}
+        value={`${movimento.veicoli?.targa ?? '—'} · ${movimento.veicoli?.modello ?? ''}`}
+      />
+      {vc && (
+        <Row
+          label="Veicolo consegna"
+          value={`${vc.targa} · ${vc.modello}`}
+        />
+      )}
       <Row label="Compagnia" value={movimento.veicoli?.compagnie?.nome} />
       <Row label="Tipo" value={TIPO_LABEL[movimento.tipo]} />
       <Row label="Data e ora" value={formatDataOra(movimento.data_ora)} />

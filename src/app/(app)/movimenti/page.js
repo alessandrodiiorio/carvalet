@@ -32,7 +32,8 @@ export default async function MovimentiPage() {
     .from('movimenti')
     .select(`
       id, tipo, stato, data_ora, luogo_ritiro, luogo_consegna,
-      veicoli ( targa, modello, compagnie ( nome ) ),
+      veicoli!movimenti_veicolo_id_fkey ( targa, modello, compagnie ( nome ) ),
+      veicolo_consegna:veicoli!movimenti_veicolo_consegna_id_fkey ( targa, modello, compagnie ( nome ) ),
       assegnato:profili!movimenti_assegnato_a_fkey ( nome )
     `)
     .order('data_ora', { ascending: false })
@@ -100,7 +101,10 @@ export default async function MovimentiPage() {
                 </span>
               </div>
               <p className="font-semibold mt-1">
-                {m.veicoli?.targa ?? '—'}{' '}
+                {m.veicoli?.targa ?? '—'}
+                {m.veicolo_consegna?.targa && (
+                  <span className="text-slate-500"> → {m.veicolo_consegna.targa}</span>
+                )}{' '}
                 <span className="font-normal text-slate-600">
                   · {TIPO_LABEL[m.tipo] ?? m.tipo}
                 </span>
@@ -108,6 +112,11 @@ export default async function MovimentiPage() {
               <p className="text-sm text-slate-600 truncate">
                 {m.veicoli?.modello}
                 {m.veicoli?.compagnie?.nome ? ` · ${m.veicoli.compagnie.nome}` : ''}
+                {m.veicolo_consegna && (
+                  <span className="text-slate-500">
+                    {' '}/ {m.veicolo_consegna.modello}
+                  </span>
+                )}
               </p>
               {m.assegnato?.nome && (
                 <p className="text-xs text-slate-500 mt-1">

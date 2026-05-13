@@ -81,7 +81,8 @@ export default async function CalendarioPage({ searchParams }) {
     .from('movimenti')
     .select(`
       id, tipo, stato, data_ora,
-      veicoli ( targa, modello, compagnie ( nome ) ),
+      veicoli!movimenti_veicolo_id_fkey ( targa, modello, compagnie ( nome ) ),
+      veicolo_consegna:veicoli!movimenti_veicolo_consegna_id_fkey ( targa, modello ),
       assegnato:profili!movimenti_assegnato_a_fkey ( nome )
     `)
     .gte('data_ora', da)
@@ -260,7 +261,10 @@ export default async function CalendarioPage({ searchParams }) {
                     </span>
                   </div>
                   <p className="font-semibold text-sm mt-0.5">
-                    {m.veicoli?.targa ?? '—'}{' '}
+                    {m.veicoli?.targa ?? '—'}
+                    {m.veicolo_consegna?.targa && (
+                      <span className="text-slate-500"> → {m.veicolo_consegna.targa}</span>
+                    )}{' '}
                     <span className="font-normal text-slate-600">
                       · {TIPO_LABEL[m.tipo] ?? m.tipo}
                     </span>

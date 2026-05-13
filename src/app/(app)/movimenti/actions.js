@@ -58,13 +58,24 @@ function leggiMovimentoBase(formData) {
   const luogo_consegna = get(formData, 'luogo_consegna')
   const note = get(formData, 'note')
   const assegnato_a = get(formData, 'assegnato_a')
+  const veicolo_consegna_id =
+    tipo === 'ritiro_consegna' ? get(formData, 'veicolo_consegna_id') : null
 
   if (!tipo || !TIPI.includes(tipo)) return { errore: 'Tipo movimento non valido.' }
   if (!STATI.includes(stato)) return { errore: 'Stato non valido.' }
   if (!data_ora) return { errore: 'Data e ora obbligatorie.' }
 
   return {
-    dati: { tipo, stato, data_ora, luogo_ritiro, luogo_consegna, note, assegnato_a },
+    dati: {
+      tipo,
+      stato,
+      data_ora,
+      luogo_ritiro,
+      luogo_consegna,
+      note,
+      assegnato_a,
+      veicolo_consegna_id,
+    },
   }
 }
 
