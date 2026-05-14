@@ -4,13 +4,35 @@ import { useRef, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 // Pattern targa italiana: 2 lettere + 3 cifre + 2 lettere
-const REGEX_TARGA_IT = /[A-Z]{2}\s?\d{3}\s?[A-Z]{2}/
+const REGEX_TARGA_IT = /[A-Z]{2}[\s\-]?\d{3}[\s\-]?[A-Z]{2}/
+
+// Confusioni OCR comuni
+const SUB_NUM_LETT = { '0': 'O', '1': 'I', '5': 'S', '8': 'B', '2': 'Z' }
+const SUB_LETT_NUM = { O: '0', I: '1', S: '5', B: '8', Z: '2', Q: '0', D: '0' }
 
 function estraiTarga(testo) {
   if (!testo) return null
-  const up = testo.toUpperCase().replace(/[^A-Z0-9\s]/g, '')
-  const match = up.match(REGEX_TARGA_IT)
-  return match ? match[0].replace(/\s+/g, '') : null
+  const up = testo.toUpperCase().replace(/[^A-Z0-9\s\-]/g, '')
+
+  // Match diretto
+  const direct = up.match(REGEX_TARGA_IT)
+  if (direct) return direct[0].replace(/[\s\-]/g, '')
+
+  // Cerca finestre di 7 char compatibili dopo sostituzioni OCR confusion
+  const compact = up.replace(/[\s\-]/g, '')
+  for (let i = 0; i + 7 <= compact.length; i++) {
+    const w = compact.slice(i, i + 7)
+    const fixed =
+      (SUB_NUM_LETT[w[0]] ?? w[0]) +
+      (SUB_NUM_LETT[w[1]] ?? w[1]) +
+      (SUB_LETT_NUM[w[2]] ?? w[2]) +
+      (SUB_LETT_NUM[w[3]] ?? w[3]) +
+      (SUB_LETT_NUM[w[4]] ?? w[4]) +
+      (SUB_NUM_LETT[w[5]] ?? w[5]) +
+      (SUB_NUM_LETT[w[6]] ?? w[6])
+    if (/^[A-Z]{2}\d{3}[A-Z]{2}$/.test(fixed)) return fixed
+  }
+  return null
 }
 
 // Resize via canvas. Max 800px lato lungo, JPEG quality 0.7.
@@ -79,14 +101,42 @@ export default function TargaInput({
       const { data: pub } = supabase.storage.from('targhe').getPublicUrl(path)
       setFotoUrl(pub.publicUrl)
 
-      // OCR sul blob in parallelo
+      // OCR su file originale (no resize - serve risoluzione alta)
       setBusy('ocr')
       try {
         const Tesseract = await import('tesseract.js')
-        const { data } = await Tesseract.recognize(blob, 'eng')
+        const worker = await Tesseract.createWorker('eng')
+        await worker.setParameters({
+          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+          tessedit_pageseg_mode: '7', // single text line
+        })
+        const { data } = await worker.recognize(file)
+        await worker.terminate()
+        // eslint-disable-next-line no-console
+        console.log('[OCR targa]', JSON.stringify(data?.text))
         const targa = estraiTarga(data?.text || '')
-        if (targa) setValore(targa)
-        else setErrore('Targa non rilevata automaticamente. Digita manualmente.')
+        if (targa) {
+          setValore(targa)
+        } else {
+          // Retry PSM 6 (uniform block) se 7 fallisce
+          const w2 = await Tesseract.createWorker('eng')
+          await w2.setParameters({
+            tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+            tessedit_pageseg_mode: '6',
+          })
+          const { data: d2 } = await w2.recognize(file)
+          await w2.terminate()
+          // eslint-disable-next-line no-console
+          console.log('[OCR targa PSM6]', JSON.stringify(d2?.text))
+          const t2 = estraiTarga(d2?.text || '')
+          if (t2) setValore(t2)
+          else
+            setErrore(
+              'Targa non rilevata. Testo OCR: "' +
+                (data?.text || '').trim().slice(0, 60) +
+                '". Digita manualmente.',
+            )
+        }
       } catch (ocrErr) {
         setErrore('OCR non disponibile: ' + (ocrErr?.message || 'errore'))
       }
