@@ -38,6 +38,21 @@ export default async function VeicoloPage({ params, searchParams }) {
         {veicolo.modello} · {veicolo.compagnie?.nome ?? '—'}
       </p>
 
+      {veicolo.foto_targa_url && (
+        <a
+          href={veicolo.foto_targa_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="block rounded-2xl overflow-hidden bg-white shadow"
+        >
+          <img
+            src={veicolo.foto_targa_url}
+            alt={`Foto targa ${veicolo.targa}`}
+            className="w-full max-h-64 object-contain bg-slate-100"
+          />
+        </a>
+      )}
+
       {sp?.error && (
         <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm p-3">
           {sp.error}

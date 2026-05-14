@@ -31,6 +31,7 @@ async function risolviVeicolo(supabase, formData, slot = 1) {
   const compagnia_id = get(formData, fieldCompagnia)
   const targaRaw = get(formData, fieldTarga)
   const modello = get(formData, fieldModello)
+  const foto_targa_url = get(formData, `${fieldTarga}_foto`)
 
   if (!compagnia_id || !targaRaw || !modello) {
     return { errore: 'Per creare un nuovo veicolo servono compagnia, targa e modello.' }
@@ -44,11 +45,19 @@ async function risolviVeicolo(supabase, formData, slot = 1) {
     .eq('compagnia_id', compagnia_id)
     .maybeSingle()
 
-  if (esistente) return { veicolo_id: esistente.id }
+  if (esistente) {
+    if (foto_targa_url) {
+      await supabase
+        .from('veicoli')
+        .update({ foto_targa_url })
+        .eq('id', esistente.id)
+    }
+    return { veicolo_id: esistente.id }
+  }
 
   const { data: creato, error } = await supabase
     .from('veicoli')
-    .insert({ compagnia_id, targa, modello })
+    .insert({ compagnia_id, targa, modello, foto_targa_url })
     .select('id')
     .single()
 

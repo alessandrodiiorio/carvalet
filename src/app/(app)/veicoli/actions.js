@@ -15,6 +15,7 @@ function readForm(formData) {
     targa: targa ? targa.toUpperCase().replace(/\s+/g, '') : null,
     modello: get('modello'),
     note: get('note'),
+    foto_targa_url: get('targa_foto'),
   }
 }
 

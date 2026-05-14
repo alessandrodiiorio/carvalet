@@ -35,6 +35,7 @@ export default function VeicoloForm({
       <TargaInput
         name="targa"
         defaultValue={v.targa ?? ''}
+        defaultFotoUrl={v.foto_targa_url ?? ''}
         required
       />
       <ModelloPicker

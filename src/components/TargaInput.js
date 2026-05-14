@@ -1,8 +1,9 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import { createClient } from '@/lib/supabase/client'
 
-// Pattern targa italiana: 2 lettere + 3 cifre + 2 lettere (es. AB123CD)
+// Pattern targa italiana: 2 lettere + 3 cifre + 2 lettere
 const REGEX_TARGA_IT = /[A-Z]{2}\s?\d{3}\s?[A-Z]{2}/
 
 function estraiTarga(testo) {
@@ -12,44 +13,95 @@ function estraiTarga(testo) {
   return match ? match[0].replace(/\s+/g, '') : null
 }
 
+// Resize via canvas. Max 800px lato lungo, JPEG quality 0.7.
+async function resizeImmagine(file, maxLato = 800, quality = 0.7) {
+  const url = URL.createObjectURL(file)
+  try {
+    const img = new Image()
+    img.src = url
+    await img.decode()
+    const ratio = Math.min(maxLato / Math.max(img.width, img.height), 1)
+    const w = Math.round(img.width * ratio)
+    const h = Math.round(img.height * ratio)
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, 0, 0, w, h)
+    const blob = await new Promise((res) =>
+      canvas.toBlob(res, 'image/jpeg', quality),
+    )
+    return blob
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
 export default function TargaInput({
   name,
   defaultValue = '',
+  defaultFotoUrl = '',
   required = false,
   placeholder = 'es. AB123CD',
 }) {
   const [valore, setValore] = useState(defaultValue)
-  const [preview, setPreview] = useState(null)
-  const [ocrLoading, setOcrLoading] = useState(false)
-  const [ocrErrore, setOcrErrore] = useState(null)
+  const [preview, setPreview] = useState(defaultFotoUrl || null)
+  const [fotoUrl, setFotoUrl] = useState(defaultFotoUrl || '')
+  const [busy, setBusy] = useState(null) // 'upload' | 'ocr' | null
+  const [errore, setErrore] = useState(null)
   const inputFileRef = useRef(null)
 
   async function handleFile(e) {
     const file = e.target.files?.[0]
     if (!file) return
 
-    setPreview(URL.createObjectURL(file))
-    setOcrErrore(null)
-    setOcrLoading(true)
+    setErrore(null)
+    setBusy('upload')
 
     try {
-      const Tesseract = await import('tesseract.js')
-      const { data } = await Tesseract.recognize(file, 'eng', {
-        // logger: (m) => console.log(m),
-      })
-      const targa = estraiTarga(data?.text || '')
-      if (targa) {
-        setValore(targa)
-      } else {
-        setOcrErrore(
-          'Targa non rilevata automaticamente. Digita manualmente.',
-        )
+      // Resize
+      const blob = await resizeImmagine(file, 800, 0.7)
+      if (!blob) throw new Error('Resize fallito')
+
+      setPreview(URL.createObjectURL(blob))
+
+      // Upload a Supabase Storage
+      const supabase = createClient()
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`
+      const { error: upErr } = await supabase.storage
+        .from('targhe')
+        .upload(path, blob, {
+          contentType: 'image/jpeg',
+          cacheControl: '31536000',
+        })
+      if (upErr) throw new Error('Upload: ' + upErr.message)
+
+      const { data: pub } = supabase.storage.from('targhe').getPublicUrl(path)
+      setFotoUrl(pub.publicUrl)
+
+      // OCR sul blob in parallelo
+      setBusy('ocr')
+      try {
+        const Tesseract = await import('tesseract.js')
+        const { data } = await Tesseract.recognize(blob, 'eng')
+        const targa = estraiTarga(data?.text || '')
+        if (targa) setValore(targa)
+        else setErrore('Targa non rilevata automaticamente. Digita manualmente.')
+      } catch (ocrErr) {
+        setErrore('OCR non disponibile: ' + (ocrErr?.message || 'errore'))
       }
     } catch (err) {
-      setOcrErrore('OCR non disponibile: ' + (err?.message || 'errore'))
+      setErrore(err?.message || String(err))
     } finally {
-      setOcrLoading(false)
+      setBusy(null)
     }
+  }
+
+  function rimuoviFoto() {
+    setPreview(null)
+    setFotoUrl('')
+    setErrore(null)
+    if (inputFileRef.current) inputFileRef.current.value = ''
   }
 
   return (
@@ -73,12 +125,12 @@ export default function TargaInput({
         <button
           type="button"
           onClick={() => inputFileRef.current?.click()}
-          disabled={ocrLoading}
+          disabled={busy !== null}
           aria-label="Scatta foto targa"
           className="inline-flex items-center justify-center w-10 h-10 shrink-0 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 active:bg-slate-100 disabled:opacity-50 transition-colors"
           title="Scatta foto targa"
         >
-          {ocrLoading ? (
+          {busy ? (
             <svg viewBox="0 0 24 24" className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M21 12a9 9 0 1 1-6.219-8.56" strokeLinecap="round" />
             </svg>
@@ -100,6 +152,9 @@ export default function TargaInput({
         className="hidden"
       />
 
+      {/* Hidden field con URL foto, letto dal server action */}
+      <input type="hidden" name={`${name}_foto`} value={fotoUrl} />
+
       {preview && (
         <div className="relative inline-block">
           <img
@@ -109,10 +164,7 @@ export default function TargaInput({
           />
           <button
             type="button"
-            onClick={() => {
-              setPreview(null)
-              setOcrErrore(null)
-            }}
+            onClick={rimuoviFoto}
             className="absolute top-1 right-1 w-6 h-6 rounded-full bg-white/90 border border-slate-300 text-slate-700 text-xs flex items-center justify-center"
             aria-label="Rimuovi foto"
           >
@@ -121,12 +173,13 @@ export default function TargaInput({
         </div>
       )}
 
-      {ocrLoading && (
-        <p className="text-xs text-slate-500">Riconoscimento targa in corso…</p>
+      {busy === 'upload' && (
+        <p className="text-xs text-slate-500">Upload foto…</p>
       )}
-      {ocrErrore && (
-        <p className="text-xs text-amber-700">{ocrErrore}</p>
+      {busy === 'ocr' && (
+        <p className="text-xs text-slate-500">Riconoscimento targa…</p>
       )}
+      {errore && <p className="text-xs text-amber-700">{errore}</p>}
     </div>
   )
 }
