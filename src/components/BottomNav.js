@@ -48,6 +48,16 @@ const NAV = [
     ),
   },
   {
+    href: '/spese',
+    label: 'Spese',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5">
+        <line x1="12" y1="1" x2="12" y2="23" />
+        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+      </svg>
+    ),
+  },
+  {
     href: '/report/giornaliero',
     label: 'Report',
     icon: (
@@ -64,7 +74,9 @@ export default function BottomNav({ ruolo = 'collaboratore' }) {
   const visibili =
     ruolo === 'titolare'
       ? NAV
-      : NAV.filter((n) => n.href === '/movimenti' || n.href === '/veicoli')
+      : NAV.filter((n) =>
+          ['/movimenti', '/veicoli', '/spese'].includes(n.href),
+        )
   const cols = visibili.length
 
   return (

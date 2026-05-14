@@ -8,9 +8,10 @@ export default async function ReportLayout({ children }) {
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold print:hidden">Report</h1>
-      <nav className="flex gap-2 print:hidden">
+      <nav className="flex gap-2 print:hidden flex-wrap">
         <TabLink href="/report/giornaliero">Giornaliero</TabLink>
         <TabLink href="/report/mensile">Mensile</TabLink>
+        <TabLink href="/report/utile-netto">Utile netto</TabLink>
       </nav>
       {children}
     </div>
