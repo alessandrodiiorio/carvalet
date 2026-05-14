@@ -59,6 +59,48 @@ async function resizeImmagine(file, maxLato = 800, quality = 0.7) {
   }
 }
 
+// Preprocessing per OCR: grayscale + contrast boost + threshold binario.
+async function preprocessPerOCR(file, maxLato = 1600) {
+  const url = URL.createObjectURL(file)
+  try {
+    const img = new Image()
+    img.src = url
+    await img.decode()
+    const ratio = Math.min(maxLato / Math.max(img.width, img.height), 1)
+    const w = Math.round(img.width * ratio)
+    const h = Math.round(img.height * ratio)
+    const canvas = document.createElement('canvas')
+    canvas.width = w
+    canvas.height = h
+    const ctx = canvas.getContext('2d')
+    ctx.drawImage(img, 0, 0, w, h)
+    const id = ctx.getImageData(0, 0, w, h)
+    const d = id.data
+
+    // Calcola media luminanza
+    let sum = 0
+    const total = (d.length / 4) | 0
+    for (let i = 0; i < d.length; i += 4) {
+      sum += 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]
+    }
+    const mean = sum / total
+    const threshold = Math.max(60, Math.min(200, mean - 10))
+
+    for (let i = 0; i < d.length; i += 4) {
+      const lum = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2]
+      const bw = lum > threshold ? 255 : 0
+      d[i] = bw
+      d[i + 1] = bw
+      d[i + 2] = bw
+    }
+    ctx.putImageData(id, 0, 0)
+    const blob = await new Promise((res) => canvas.toBlob(res, 'image/png'))
+    return blob
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
 export default function TargaInput({
   name,
   defaultValue = '',
@@ -101,41 +143,44 @@ export default function TargaInput({
       const { data: pub } = supabase.storage.from('targhe').getPublicUrl(path)
       setFotoUrl(pub.publicUrl)
 
-      // OCR su file originale (no resize - serve risoluzione alta)
+      // OCR su immagine preprocessata (grayscale + threshold)
       setBusy('ocr')
       try {
         const Tesseract = await import('tesseract.js')
-        const worker = await Tesseract.createWorker('eng')
-        await worker.setParameters({
-          tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-          tessedit_pageseg_mode: '7', // single text line
-        })
-        const { data } = await worker.recognize(file)
-        await worker.terminate()
-        // eslint-disable-next-line no-console
-        console.log('[OCR targa]', JSON.stringify(data?.text))
-        const targa = estraiTarga(data?.text || '')
-        if (targa) {
-          setValore(targa)
-        } else {
-          // Retry PSM 6 (uniform block) se 7 fallisce
-          const w2 = await Tesseract.createWorker('eng')
-          await w2.setParameters({
+        const blobOcr = await preprocessPerOCR(file)
+        const targetOcr = blobOcr || file
+
+        const tentativi = [
+          { psm: '7', label: 'PSM7' },
+          { psm: '6', label: 'PSM6' },
+          { psm: '11', label: 'PSM11' }, // sparse text
+        ]
+
+        let trovata = null
+        let ultimoTesto = ''
+        for (const t of tentativi) {
+          const worker = await Tesseract.createWorker('eng')
+          await worker.setParameters({
             tessedit_char_whitelist: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-            tessedit_pageseg_mode: '6',
+            tessedit_pageseg_mode: t.psm,
           })
-          const { data: d2 } = await w2.recognize(file)
-          await w2.terminate()
+          const { data } = await worker.recognize(targetOcr)
+          await worker.terminate()
+          ultimoTesto = data?.text || ''
           // eslint-disable-next-line no-console
-          console.log('[OCR targa PSM6]', JSON.stringify(d2?.text))
-          const t2 = estraiTarga(d2?.text || '')
-          if (t2) setValore(t2)
-          else
-            setErrore(
-              'Targa non rilevata. Testo OCR: "' +
-                (data?.text || '').trim().slice(0, 60) +
-                '". Digita manualmente.',
-            )
+          console.log(`[OCR ${t.label}]`, JSON.stringify(ultimoTesto))
+          trovata = estraiTarga(ultimoTesto)
+          if (trovata) break
+        }
+
+        if (trovata) {
+          setValore(trovata)
+        } else {
+          setErrore(
+            'Targa non rilevata. OCR: "' +
+              ultimoTesto.trim().slice(0, 60) +
+              '". Digita manualmente.',
+          )
         }
       } catch (ocrErr) {
         setErrore('OCR non disponibile: ' + (ocrErr?.message || 'errore'))
