@@ -224,14 +224,12 @@ export default async function CalendarioPage({ searchParams }) {
         <div className="rounded-2xl bg-white shadow p-4 space-y-3">
           <div className="flex items-center justify-between gap-3">
             <p className="font-semibold capitalize">{formatDataLunga(giornoSelezionato)}</p>
-            {titolare && (
-              <Link
-                href="/movimenti/nuovo"
-                className="rounded-lg bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 hover:bg-slate-800"
-              >
-                + Nuovo
-              </Link>
-            )}
+            <Link
+              href="/movimenti/nuovo"
+              className="rounded-lg bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 hover:bg-slate-800"
+            >
+              + Nuovo
+            </Link>
           </div>
 
           {movDelGiorno.length === 0 && (

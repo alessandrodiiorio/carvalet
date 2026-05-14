@@ -54,14 +54,12 @@ export default async function MovimentiPage() {
             </svg>
             <span className="hidden sm:inline">Calendario</span>
           </Link>
-          {isTitolare(profilo) && (
-            <Link
-              href="/movimenti/nuovo"
-              className="rounded-lg bg-slate-900 text-white text-sm font-medium px-3 py-2 hover:bg-slate-800"
-            >
-              + Nuovo
-            </Link>
-          )}
+          <Link
+            href="/movimenti/nuovo"
+            className="rounded-lg bg-slate-900 text-white text-sm font-medium px-3 py-2 hover:bg-slate-800"
+          >
+            + Nuovo
+          </Link>
         </div>
       </div>
 
@@ -74,11 +72,9 @@ export default async function MovimentiPage() {
       {movimenti?.length === 0 && (
         <div className="rounded-2xl bg-white shadow p-6 text-center text-sm text-slate-500">
           Nessun movimento ancora.{' '}
-          {isTitolare(profilo) && (
-            <Link href="/movimenti/nuovo" className="underline font-medium">
-              Crea il primo
-            </Link>
-          )}
+          <Link href="/movimenti/nuovo" className="underline font-medium">
+            Crea il primo
+          </Link>
         </div>
       )}
 
