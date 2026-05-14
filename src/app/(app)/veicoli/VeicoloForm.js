@@ -1,4 +1,5 @@
 import ModelloPicker from '@/components/ModelloPicker'
+import TargaInput from '@/components/TargaInput'
 
 export default function VeicoloForm({
   action,
@@ -31,13 +32,10 @@ export default function VeicoloForm({
         </select>
       </div>
 
-      <Field
-        label="Targa *"
+      <TargaInput
         name="targa"
-        defaultValue={v.targa}
+        defaultValue={v.targa ?? ''}
         required
-        autoCapitalize="characters"
-        placeholder="es. AB123CD"
       />
       <ModelloPicker
         name="modello"

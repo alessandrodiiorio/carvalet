@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import ModelloPicker from '@/components/ModelloPicker'
 import LuogoPicker from '@/components/LuogoPicker'
+import TargaInput from '@/components/TargaInput'
 
 const TIPI = [
   { value: 'ritiro', label: 'Ritiro' },
@@ -111,12 +112,9 @@ export default function MovimentoForm({
                 ))}
               </select>
             </div>
-            <Field
-              label="Targa *"
+            <TargaInput
               name="nuova_targa"
               required={modalita === 'nuovo'}
-              autoCapitalize="characters"
-              placeholder="es. AB123CD"
             />
             <ModelloPicker
               name="nuovo_modello"
@@ -236,12 +234,9 @@ export default function MovimentoForm({
                       ))}
                     </select>
                   </div>
-                  <Field
-                    label="Targa *"
+                  <TargaInput
                     name="nuova_consegna_targa"
                     required={modalita2 === 'nuovo'}
-                    autoCapitalize="characters"
-                    placeholder="es. AB123CD"
                   />
                   <ModelloPicker
                     name="nuovo_consegna_modello"
