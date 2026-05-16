@@ -167,8 +167,10 @@ export default function TargaInput({
           const { data } = await worker.recognize(targetOcr)
           await worker.terminate()
           ultimoTesto = data?.text || ''
-          // eslint-disable-next-line no-console
-          console.log(`[OCR ${t.label}]`, JSON.stringify(ultimoTesto))
+          if (process.env.NODE_ENV !== 'production') {
+            // eslint-disable-next-line no-console
+            console.log(`[OCR ${t.label}]`, JSON.stringify(ultimoTesto))
+          }
           trovata = estraiTarga(ultimoTesto)
           if (trovata) break
         }

@@ -49,7 +49,7 @@ export default async function ReportUtileNettoPage({ searchParams }) {
       .from('spese')
       .select(`
         id, data, importo, motivazione,
-        creato:profili!spese_creato_da_fkey ( nome )
+        creato:profili ( nome )
       `)
       .gte('data', primoGiorno)
       .lte('data', ultimoGiorno)

@@ -30,8 +30,8 @@ export default async function SpesePage({ searchParams }) {
   const { data: spese, error: loadError } = await supabase
     .from('spese')
     .select(`
-      id, data, importo, motivazione, created_at,
-      creato:profili!spese_creato_da_fkey ( nome )
+      id, data, importo, motivazione, created_at, creato_da,
+      creato:profili ( nome )
     `)
     .order('data', { ascending: false })
     .order('created_at', { ascending: false })
@@ -131,10 +131,7 @@ export default async function SpesePage({ searchParams }) {
 
       <ul className="space-y-2">
         {spese?.map((s) => {
-          const proprio = s.creato?.nome
-            ? s.creato.nome
-            : '—'
-          const isMine = s.creato_da === user.id || true // sempre mostra (sicurezza per RLS)
+          const proprio = s.creato?.nome ?? '—'
           return (
             <li
               key={s.id}
