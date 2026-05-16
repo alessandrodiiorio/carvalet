@@ -1,17 +1,21 @@
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
-import { getUtente, isTitolare } from '@/lib/auth'
+import { getUtente, isTitolare, isCompagnia } from '@/lib/auth'
 
 export default async function ReportLayout({ children }) {
   const { profilo } = await getUtente()
-  if (!isTitolare(profilo)) redirect('/movimenti')
+  const titolare = isTitolare(profilo)
+  const compagnia = isCompagnia(profilo)
+  if (!titolare && !compagnia) redirect('/movimenti')
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-bold print:hidden">Report</h1>
       <nav className="flex gap-2 print:hidden flex-wrap">
         <TabLink href="/report/giornaliero">Giornaliero</TabLink>
         <TabLink href="/report/mensile">Mensile</TabLink>
-        <TabLink href="/report/utile-netto">Utile netto</TabLink>
+        {titolare && (
+          <TabLink href="/report/utile-netto">Utile netto</TabLink>
+        )}
       </nav>
       {children}
     </div>

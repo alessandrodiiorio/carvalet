@@ -29,6 +29,7 @@ export async function creaCollaboratore(formData) {
   const email = (formData.get('email') || '').toString().trim().toLowerCase()
   const password = (formData.get('password') || '').toString()
   const ruolo = (formData.get('ruolo') || 'collaboratore').toString()
+  const compagnia_id = (formData.get('compagnia_id') || '').toString().trim() || null
 
   if (!nome) {
     redirect('/collaboratori?error=' + encodeURIComponent('Nome obbligatorio.'))
@@ -42,8 +43,14 @@ export async function creaCollaboratore(formData) {
         encodeURIComponent('Password obbligatoria (min 8 caratteri).'),
     )
   }
-  if (!['titolare', 'collaboratore'].includes(ruolo)) {
+  if (!['titolare', 'collaboratore', 'compagnia'].includes(ruolo)) {
     redirect('/collaboratori?error=' + encodeURIComponent('Ruolo non valido.'))
+  }
+  if (ruolo === 'compagnia' && !compagnia_id) {
+    redirect(
+      '/collaboratori?error=' +
+        encodeURIComponent('Per ruolo "compagnia" serve selezionare la compagnia.'),
+    )
   }
 
   let admin
@@ -72,9 +79,10 @@ export async function creaCollaboratore(formData) {
   }
 
   // Trigger handle_new_user crea profilo con ruolo default 'collaboratore'.
-  // Aggiorno nome (caso fallback) e ruolo se richiesto titolare.
-  const update = { nome }
-  if (ruolo === 'titolare') update.ruolo = 'titolare'
+  // Aggiorno nome, ruolo e compagnia_id se richiesto.
+  const update = { nome, ruolo }
+  if (ruolo === 'compagnia') update.compagnia_id = compagnia_id
+  else update.compagnia_id = null
 
   const { error: upErr } = await admin
     .from('profili')
@@ -99,7 +107,7 @@ export async function cambiaRuolo(formData) {
   const id = formData.get('id')
   const ruolo = formData.get('ruolo')
 
-  if (!id || !['titolare', 'collaboratore'].includes(ruolo)) {
+  if (!id || !['titolare', 'collaboratore', 'compagnia'].includes(ruolo)) {
     redirect('/collaboratori?error=' + encodeURIComponent('Dati non validi.'))
   }
 

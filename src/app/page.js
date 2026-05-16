@@ -15,5 +15,6 @@ export default async function Home() {
     .eq('id', user.id)
     .single()
 
-  redirect(profilo?.ruolo === 'titolare' ? '/dashboard' : '/movimenti')
+  if (profilo?.ruolo === 'titolare') redirect('/dashboard')
+  redirect('/movimenti')
 }

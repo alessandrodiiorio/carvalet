@@ -74,6 +74,10 @@ export default function BottomNav({ ruolo = 'collaboratore' }) {
   const visibili =
     ruolo === 'titolare'
       ? NAV
+      : ruolo === 'compagnia'
+      ? NAV.filter((n) =>
+          ['/movimenti', '/report/giornaliero'].includes(n.href),
+        )
       : NAV.filter((n) =>
           ['/movimenti', '/veicoli', '/spese'].includes(n.href),
         )

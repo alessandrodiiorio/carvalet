@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getUtente, isTitolare } from '@/lib/auth'
+import { getUtente, isTitolare, isCompagnia } from '@/lib/auth'
 
 const TIPO_LABEL = {
   ritiro: 'Ritiro',
@@ -27,6 +27,7 @@ function formatDataOra(iso) {
 
 export default async function MovimentiPage() {
   const { profilo, supabase } = await getUtente()
+  const compagnia = isCompagnia(profilo)
 
   const { data: movimenti, error } = await supabase
     .from('movimenti')
@@ -54,12 +55,14 @@ export default async function MovimentiPage() {
             </svg>
             <span className="hidden sm:inline">Calendario</span>
           </Link>
-          <Link
-            href="/movimenti/nuovo"
-            className="rounded-lg bg-slate-900 text-white text-sm font-medium px-3 py-2 hover:bg-slate-800"
-          >
-            + Nuovo
-          </Link>
+          {!compagnia && (
+            <Link
+              href="/movimenti/nuovo"
+              className="rounded-lg bg-slate-900 text-white text-sm font-medium px-3 py-2 hover:bg-slate-800"
+            >
+              + Nuovo
+            </Link>
+          )}
         </div>
       </div>
 
@@ -72,9 +75,11 @@ export default async function MovimentiPage() {
       {movimenti?.length === 0 && (
         <div className="rounded-2xl bg-white shadow p-6 text-center text-sm text-slate-500">
           Nessun movimento ancora.{' '}
-          <Link href="/movimenti/nuovo" className="underline font-medium">
-            Crea il primo
-          </Link>
+          {!compagnia && (
+            <Link href="/movimenti/nuovo" className="underline font-medium">
+              Crea il primo
+            </Link>
+          )}
         </div>
       )}
 

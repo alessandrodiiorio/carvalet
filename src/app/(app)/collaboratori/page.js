@@ -17,10 +17,16 @@ export default async function CollaboratoriPage({ searchParams }) {
   const error = params?.error
   const info = params?.info
 
-  const { data: collaboratori, error: loadError } = await supabase
-    .from('profili')
-    .select('id, nome, ruolo, created_at')
-    .order('created_at', { ascending: true })
+  const [
+    { data: collaboratori, error: loadError },
+    { data: compagnie },
+  ] = await Promise.all([
+    supabase
+      .from('profili')
+      .select('id, nome, ruolo, compagnia_id, created_at, compagnie:compagnia_id ( nome )')
+      .order('created_at', { ascending: true }),
+    supabase.from('compagnie').select('id, nome').order('nome', { ascending: true }),
+  ])
 
   const numTitolari = (collaboratori || []).filter((c) => c.ruolo === 'titolare').length
 
@@ -123,6 +129,25 @@ export default async function CollaboratoriPage({ searchParams }) {
             >
               <option value="collaboratore">Collaboratore</option>
               <option value="titolare">Titolare</option>
+              <option value="compagnia">Compagnia (solo lettura propria)</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="nuovo_compagnia_id" className="block text-xs font-medium mb-1">
+              Compagnia <span className="text-slate-400 font-normal">(obbligatoria se ruolo=compagnia)</span>
+            </label>
+            <select
+              id="nuovo_compagnia_id"
+              name="compagnia_id"
+              defaultValue=""
+              className="w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
+            >
+              <option value="">— Nessuna —</option>
+              {compagnie?.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nome}
+                </option>
+              ))}
             </select>
           </div>
           <button
@@ -162,16 +187,25 @@ export default async function CollaboratoriPage({ searchParams }) {
                     {c.nome}
                     {isSelf && <span className="ml-2 text-xs text-slate-400">(tu)</span>}
                   </p>
-                  <span
-                    className={[
-                      'inline-flex items-center mt-0.5 text-[11px] font-medium px-2 py-0.5 rounded-full',
-                      c.ruolo === 'titolare'
-                        ? 'bg-indigo-100 text-indigo-700'
-                        : 'bg-slate-100 text-slate-600',
-                    ].join(' ')}
-                  >
-                    {c.ruolo}
-                  </span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span
+                      className={[
+                        'inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full',
+                        c.ruolo === 'titolare'
+                          ? 'bg-indigo-100 text-indigo-700'
+                          : c.ruolo === 'compagnia'
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-slate-100 text-slate-600',
+                      ].join(' ')}
+                    >
+                      {c.ruolo}
+                    </span>
+                    {c.ruolo === 'compagnia' && c.compagnie?.nome && (
+                      <span className="text-[11px] text-slate-500 truncate">
+                        · {c.compagnie.nome}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
 

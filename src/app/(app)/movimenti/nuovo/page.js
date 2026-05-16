@@ -1,10 +1,12 @@
 import Link from 'next/link'
-import { getUtente } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import { getUtente, isCompagnia } from '@/lib/auth'
 import { creaMovimento } from '../actions'
 import MovimentoForm from '../MovimentoForm'
 
 export default async function NuovoMovimentoPage({ searchParams }) {
   const { profilo, supabase } = await getUtente()
+  if (isCompagnia(profilo)) redirect('/movimenti')
 
   const params = await searchParams
   const error = params?.error

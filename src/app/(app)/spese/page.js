@@ -1,4 +1,5 @@
-import { getUtente, isTitolare } from '@/lib/auth'
+import { redirect } from 'next/navigation'
+import { getUtente, isTitolare, isCompagnia } from '@/lib/auth'
 import { formatPrezzo, oggiItaliaYmd } from '@/lib/dates'
 import DeleteButton from '@/components/DeleteButton'
 import { creaSpesa, eliminaSpesa } from './actions'
@@ -20,6 +21,7 @@ function formatDataIt(ymd) {
 
 export default async function SpesePage({ searchParams }) {
   const { profilo, user, supabase } = await getUtente()
+  if (isCompagnia(profilo)) redirect('/movimenti')
   const titolare = isTitolare(profilo)
   const params = await searchParams
   const error = params?.error

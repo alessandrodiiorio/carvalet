@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getUtente, isTitolare } from '@/lib/auth'
+import { getUtente, isTitolare, isCompagnia } from '@/lib/auth'
 import {
   boundsMeseIso,
   boundsGiornoIso,
@@ -75,6 +75,7 @@ export default async function CalendarioPage({ searchParams }) {
 
   const { profilo, supabase } = await getUtente()
   const titolare = isTitolare(profilo)
+  const compagnia = isCompagnia(profilo)
 
   const { da, a } = boundsMeseIso(mese)
   const { data: movimenti, error } = await supabase
@@ -224,12 +225,14 @@ export default async function CalendarioPage({ searchParams }) {
         <div className="rounded-2xl bg-white shadow p-4 space-y-3">
           <div className="flex items-center justify-between gap-3">
             <p className="font-semibold capitalize">{formatDataLunga(giornoSelezionato)}</p>
-            <Link
-              href="/movimenti/nuovo"
-              className="rounded-lg bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 hover:bg-slate-800"
-            >
-              + Nuovo
-            </Link>
+            {!compagnia && (
+              <Link
+                href="/movimenti/nuovo"
+                className="rounded-lg bg-slate-900 text-white text-xs font-semibold px-3 py-1.5 hover:bg-slate-800"
+              >
+                + Nuovo
+              </Link>
+            )}
           </div>
 
           {movDelGiorno.length === 0 && (

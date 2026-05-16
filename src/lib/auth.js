@@ -21,3 +21,11 @@ export async function getUtente() {
 export function isTitolare(profilo) {
   return profilo?.ruolo === 'titolare'
 }
+
+export function isCompagnia(profilo) {
+  return profilo?.ruolo === 'compagnia'
+}
+
+export function isCollaboratore(profilo) {
+  return profilo?.ruolo === 'collaboratore'
+}

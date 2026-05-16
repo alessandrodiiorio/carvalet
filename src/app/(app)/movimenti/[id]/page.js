@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { getUtente, isTitolare } from '@/lib/auth'
+import { getUtente, isTitolare, isCompagnia } from '@/lib/auth'
 import DeleteButton from '@/components/DeleteButton'
 import {
   aggiornaMovimento,
@@ -38,6 +38,7 @@ export default async function MovimentoPage({ params, searchParams }) {
 
   const { profilo, supabase } = await getUtente()
   const titolare = isTitolare(profilo)
+  const compagnia = isCompagnia(profilo)
 
   const [
     { data: movimento, error: errLoad },
@@ -89,14 +90,16 @@ export default async function MovimentoPage({ params, searchParams }) {
         </div>
       )}
 
-      <TransferTracker
-        movimentoId={movimento.id}
-        inizioAt={movimento.inizio_at}
-        fineAt={movimento.fine_at}
-        azioneInizia={iniziaTracking}
-        azioneTermina={terminaTracking}
-        azioneAnnulla={annullaTracking}
-      />
+      {!compagnia && (
+        <TransferTracker
+          movimentoId={movimento.id}
+          inizioAt={movimento.inizio_at}
+          fineAt={movimento.fine_at}
+          azioneInizia={iniziaTracking}
+          azioneTermina={terminaTracking}
+          azioneAnnulla={annullaTracking}
+        />
+      )}
 
       {movimento.inizio_at && movimento.fine_at && (
         <TracciaSummary
@@ -127,18 +130,20 @@ export default async function MovimentoPage({ params, searchParams }) {
             {movimento.stato}
           </span>
         </div>
-        <form action={aggiornaStatoMovimento} className="grid grid-cols-3 gap-2">
-          <input type="hidden" name="id" value={movimento.id} />
-          <StateBtn name="stato" value="programmato" current={movimento.stato} variant="amber">
-            Programmato
-          </StateBtn>
-          <StateBtn name="stato" value="completato" current={movimento.stato} variant="green">
-            Completato
-          </StateBtn>
-          <StateBtn name="stato" value="annullato" current={movimento.stato} variant="slate">
-            Annullato
-          </StateBtn>
-        </form>
+        {!compagnia && (
+          <form action={aggiornaStatoMovimento} className="grid grid-cols-3 gap-2">
+            <input type="hidden" name="id" value={movimento.id} />
+            <StateBtn name="stato" value="programmato" current={movimento.stato} variant="amber">
+              Programmato
+            </StateBtn>
+            <StateBtn name="stato" value="completato" current={movimento.stato} variant="green">
+              Completato
+            </StateBtn>
+            <StateBtn name="stato" value="annullato" current={movimento.stato} variant="slate">
+              Annullato
+            </StateBtn>
+          </form>
+        )}
       </div>
 
       {titolare ? (
@@ -154,7 +159,7 @@ export default async function MovimentoPage({ params, searchParams }) {
           />
         </div>
       ) : (
-        <CollaboratorView movimento={movimento} />
+        <CollaboratorView movimento={movimento} compagnia={compagnia} />
       )}
 
       {titolare && (
