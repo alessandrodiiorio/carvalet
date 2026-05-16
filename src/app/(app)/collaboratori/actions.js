@@ -29,7 +29,10 @@ export async function creaCollaboratore(formData) {
   const email = (formData.get('email') || '').toString().trim().toLowerCase()
   const password = (formData.get('password') || '').toString()
   const ruolo = (formData.get('ruolo') || 'collaboratore').toString()
-  const compagnia_id = (formData.get('compagnia_id') || '').toString().trim() || null
+  const compagnieIds = formData
+    .getAll('compagnie_ids')
+    .map((v) => v.toString().trim())
+    .filter(Boolean)
 
   if (!nome) {
     redirect('/collaboratori?error=' + encodeURIComponent('Nome obbligatorio.'))
@@ -46,10 +49,10 @@ export async function creaCollaboratore(formData) {
   if (!['titolare', 'collaboratore', 'compagnia'].includes(ruolo)) {
     redirect('/collaboratori?error=' + encodeURIComponent('Ruolo non valido.'))
   }
-  if (ruolo === 'compagnia' && !compagnia_id) {
+  if (ruolo === 'compagnia' && compagnieIds.length === 0) {
     redirect(
       '/collaboratori?error=' +
-        encodeURIComponent('Per ruolo "compagnia" serve selezionare la compagnia.'),
+        encodeURIComponent('Per ruolo "compagnia" seleziona almeno una compagnia.'),
     )
   }
 
@@ -79,10 +82,8 @@ export async function creaCollaboratore(formData) {
   }
 
   // Trigger handle_new_user crea profilo con ruolo default 'collaboratore'.
-  // Aggiorno nome, ruolo e compagnia_id se richiesto.
-  const update = { nome, ruolo }
-  if (ruolo === 'compagnia') update.compagnia_id = compagnia_id
-  else update.compagnia_id = null
+  // Aggiorno nome, ruolo. Compagnia_id legacy null (uso junction).
+  const update = { nome, ruolo, compagnia_id: null }
 
   const { error: upErr } = await admin
     .from('profili')
@@ -96,10 +97,68 @@ export async function creaCollaboratore(formData) {
     )
   }
 
+  // Junction profilo_compagnie se ruolo compagnia
+  if (ruolo === 'compagnia' && compagnieIds.length > 0) {
+    const rows = compagnieIds.map((cid) => ({
+      profilo_id: nuovoId,
+      compagnia_id: cid,
+    }))
+    const { error: jErr } = await admin.from('profilo_compagnie').insert(rows)
+    if (jErr) {
+      redirect(
+        '/collaboratori?error=' +
+          encodeURIComponent(
+            'Utente creato ma associazione compagnie fallita: ' + jErr.message,
+          ),
+      )
+    }
+  }
+
   revalidatePath('/collaboratori')
   redirect(
     '/collaboratori?info=' +
       encodeURIComponent(`Utente "${nome}" creato come ${ruolo}.`),
+  )
+}
+
+export async function aggiornaCompagnieAssociate(formData) {
+  await assertTitolare()
+  const profilo_id = formData.get('profilo_id')?.toString()
+  const compagnieIds = formData
+    .getAll('compagnie_ids')
+    .map((v) => v.toString().trim())
+    .filter(Boolean)
+
+  if (!profilo_id) {
+    redirect(
+      '/collaboratori?error=' + encodeURIComponent('Profilo id mancante.'),
+    )
+  }
+
+  const admin = getAdminClient()
+
+  const { error: delErr } = await admin
+    .from('profilo_compagnie')
+    .delete()
+    .eq('profilo_id', profilo_id)
+  if (delErr) {
+    redirect('/collaboratori?error=' + encodeURIComponent(delErr.message))
+  }
+
+  if (compagnieIds.length > 0) {
+    const rows = compagnieIds.map((cid) => ({
+      profilo_id,
+      compagnia_id: cid,
+    }))
+    const { error: insErr } = await admin.from('profilo_compagnie').insert(rows)
+    if (insErr) {
+      redirect('/collaboratori?error=' + encodeURIComponent(insErr.message))
+    }
+  }
+
+  revalidatePath('/collaboratori')
+  redirect(
+    '/collaboratori?info=' + encodeURIComponent('Compagnie associate aggiornate.'),
   )
 }
 

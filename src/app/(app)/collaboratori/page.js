@@ -1,6 +1,10 @@
 import { redirect } from 'next/navigation'
 import { getUtente, isTitolare } from '@/lib/auth'
-import { cambiaRuolo, creaCollaboratore } from './actions'
+import {
+  cambiaRuolo,
+  creaCollaboratore,
+  aggiornaCompagnieAssociate,
+} from './actions'
 
 export const metadata = {
   title: 'Collaboratori',
@@ -20,13 +24,31 @@ export default async function CollaboratoriPage({ searchParams }) {
   const [
     { data: collaboratori, error: loadError },
     { data: compagnie },
+    { data: associazioni },
   ] = await Promise.all([
     supabase
       .from('profili')
       .select('id, nome, ruolo, compagnia_id, created_at, compagnie:compagnia_id ( nome )')
       .order('created_at', { ascending: true }),
     supabase.from('compagnie').select('id, nome').order('nome', { ascending: true }),
+    supabase.from('profilo_compagnie').select('profilo_id, compagnia_id'),
   ])
+
+  // Mappa profilo_id -> Set di compagnia_id (incluso legacy compagnia_id)
+  const compagnieDi = {}
+  for (const a of associazioni ?? []) {
+    if (!compagnieDi[a.profilo_id]) compagnieDi[a.profilo_id] = new Set()
+    compagnieDi[a.profilo_id].add(a.compagnia_id)
+  }
+  for (const c of collaboratori ?? []) {
+    if (c.compagnia_id) {
+      if (!compagnieDi[c.id]) compagnieDi[c.id] = new Set()
+      compagnieDi[c.id].add(c.compagnia_id)
+    }
+  }
+
+  const compagnieById = {}
+  for (const c of compagnie ?? []) compagnieById[c.id] = c.nome
 
   const numTitolari = (collaboratori || []).filter((c) => c.ruolo === 'titolare').length
 
@@ -133,22 +155,28 @@ export default async function CollaboratoriPage({ searchParams }) {
             </select>
           </div>
           <div>
-            <label htmlFor="nuovo_compagnia_id" className="block text-xs font-medium mb-1">
-              Compagnia <span className="text-slate-400 font-normal">(obbligatoria se ruolo=compagnia)</span>
-            </label>
-            <select
-              id="nuovo_compagnia_id"
-              name="compagnia_id"
-              defaultValue=""
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
-            >
-              <option value="">— Nessuna —</option>
+            <p className="block text-xs font-medium mb-1">
+              Compagnie associate <span className="text-slate-400 font-normal">(seleziona se ruolo=compagnia)</span>
+            </p>
+            <div className="rounded-lg border border-slate-300 p-2 max-h-48 overflow-auto space-y-1">
+              {compagnie?.length === 0 && (
+                <p className="text-xs text-slate-500 italic">Nessuna compagnia.</p>
+              )}
               {compagnie?.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nome}
-                </option>
+                <label
+                  key={c.id}
+                  className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-slate-50 cursor-pointer text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    name="compagnie_ids"
+                    value={c.id}
+                    className="w-4 h-4"
+                  />
+                  <span>{c.nome}</span>
+                </label>
               ))}
-            </select>
+            </div>
           </div>
           <button
             type="submit"
@@ -166,11 +194,14 @@ export default async function CollaboratoriPage({ searchParams }) {
           const nuovoRuolo = c.ruolo === 'titolare' ? 'collaboratore' : 'titolare'
           const labelBottone = c.ruolo === 'titolare' ? 'Rendi collaboratore' : 'Promuovi a titolare'
 
+          const associate = compagnieDi[c.id] ?? new Set()
+
           return (
             <li
               key={c.id}
-              className="rounded-2xl bg-white shadow p-4 flex items-center justify-between gap-3"
+              className="rounded-2xl bg-white shadow p-4 space-y-3"
             >
+              <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <div
                   className={[
@@ -187,7 +218,7 @@ export default async function CollaboratoriPage({ searchParams }) {
                     {c.nome}
                     {isSelf && <span className="ml-2 text-xs text-slate-400">(tu)</span>}
                   </p>
-                  <div className="flex items-center gap-2 mt-0.5">
+                  <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                     <span
                       className={[
                         'inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-full',
@@ -200,9 +231,12 @@ export default async function CollaboratoriPage({ searchParams }) {
                     >
                       {c.ruolo}
                     </span>
-                    {c.ruolo === 'compagnia' && c.compagnie?.nome && (
+                    {c.ruolo === 'compagnia' && compagnieDi[c.id] && (
                       <span className="text-[11px] text-slate-500 truncate">
-                        · {c.compagnie.nome}
+                        ·{' '}
+                        {Array.from(compagnieDi[c.id])
+                          .map((id) => compagnieById[id] ?? '?')
+                          .join(', ')}
                       </span>
                     )}
                   </div>
@@ -227,6 +261,44 @@ export default async function CollaboratoriPage({ searchParams }) {
                   {labelBottone}
                 </button>
               </form>
+              </div>
+
+              {c.ruolo === 'compagnia' && (
+                <details className="border-t border-slate-100 pt-3">
+                  <summary className="cursor-pointer text-xs font-semibold text-slate-600 hover:text-slate-900">
+                    Compagnie associate ({associate.size}) ▾
+                  </summary>
+                  <form
+                    action={aggiornaCompagnieAssociate}
+                    className="mt-2 space-y-2"
+                  >
+                    <input type="hidden" name="profilo_id" value={c.id} />
+                    <div className="rounded-lg border border-slate-200 p-2 max-h-40 overflow-auto space-y-1">
+                      {compagnie?.map((co) => (
+                        <label
+                          key={co.id}
+                          className="flex items-center gap-2 px-2 py-1 rounded hover:bg-slate-50 cursor-pointer text-xs"
+                        >
+                          <input
+                            type="checkbox"
+                            name="compagnie_ids"
+                            value={co.id}
+                            defaultChecked={associate.has(co.id)}
+                            className="w-4 h-4"
+                          />
+                          <span>{co.nome}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <button
+                      type="submit"
+                      className="text-xs font-medium rounded-lg bg-slate-900 text-white px-3 py-1.5 hover:bg-slate-800"
+                    >
+                      Salva associazioni
+                    </button>
+                  </form>
+                </details>
+              )}
             </li>
           )
         })}
