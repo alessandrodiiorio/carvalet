@@ -103,3 +103,14 @@ export function formatPrezzo(n) {
     currency: 'EUR',
   }).format(Number(n))
 }
+
+// IVA standard IT
+export const IVA_RATE = 0.22
+
+export function calcolaIva(imponibile) {
+  return Number(imponibile) * IVA_RATE
+}
+
+export function totaleLordo(imponibile) {
+  return Number(imponibile) * (1 + IVA_RATE)
+}

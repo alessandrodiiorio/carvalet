@@ -5,6 +5,9 @@ import {
   formatOraIta,
   formatPrezzo,
   oggiItaliaYmd,
+  IVA_RATE,
+  calcolaIva,
+  totaleLordo,
 } from '@/lib/dates'
 import PrintButton from '@/components/PrintButton'
 
@@ -86,7 +89,7 @@ export default async function ReportGiornalieroPage({ searchParams }) {
       </div>
 
       <div className="rounded-2xl bg-white shadow p-5 print:shadow-none print:p-0">
-        <header className="mb-4 flex items-baseline justify-between gap-3">
+        <header className="mb-4 flex items-baseline justify-between gap-3 flex-wrap">
           <div>
             <h2 className="text-lg font-bold capitalize">
               {formatDataLunga(data)}
@@ -95,9 +98,19 @@ export default async function ReportGiornalieroPage({ searchParams }) {
               {movimenti?.length ?? 0} movimenti · {completatiConTariffa} fatturati
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-xs text-slate-500">Fatturato giornata</p>
-            <p className="text-xl font-bold">{formatPrezzo(totaleFatturato)}</p>
+          <div className="text-right text-xs space-y-0.5">
+            <div className="flex justify-end gap-3">
+              <span className="text-slate-500">Imponibile</span>
+              <span className="font-medium tabular-nums">{formatPrezzo(totaleFatturato)}</span>
+            </div>
+            <div className="flex justify-end gap-3">
+              <span className="text-slate-500">IVA {(IVA_RATE * 100).toFixed(0)}%</span>
+              <span className="font-medium tabular-nums">{formatPrezzo(calcolaIva(totaleFatturato))}</span>
+            </div>
+            <div className="flex justify-end gap-3 pt-1 border-t border-slate-200">
+              <span className="font-semibold">Totale</span>
+              <span className="text-lg font-bold tabular-nums">{formatPrezzo(totaleLordo(totaleFatturato))}</span>
+            </div>
           </div>
         </header>
 

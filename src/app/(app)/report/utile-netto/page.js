@@ -5,6 +5,9 @@ import {
   formatMeseLungo,
   formatPrezzo,
   meseItaliaYm,
+  IVA_RATE,
+  calcolaIva,
+  totaleLordo,
 } from '@/lib/dates'
 import PrintButton from '@/components/PrintButton'
 
@@ -75,8 +78,12 @@ export default async function ReportUtileNettoPage({ searchParams }) {
   }
 
   const totaleSpese = (spese ?? []).reduce((s, x) => s + Number(x.importo), 0)
-  const utileNetto = fatturato - totaleSpese
-  const margine = fatturato > 0 ? (utileNetto / fatturato) * 100 : 0
+  const ivaFatturato = calcolaIva(fatturato)
+  const fatturatoLordo = totaleLordo(fatturato)
+  const utileNetto = fatturatoLordo - totaleSpese
+  const utileImponibile = fatturato - totaleSpese
+  const margine =
+    fatturatoLordo > 0 ? (utileNetto / fatturatoLordo) * 100 : 0
 
   // Raggruppa spese per giorno per dettaglio
   return (
@@ -119,11 +126,27 @@ export default async function ReportUtileNettoPage({ searchParams }) {
           </div>
         )}
 
-        <div className="grid grid-cols-3 gap-3 mb-6">
-          <Card label="Fatturato" value={formatPrezzo(fatturato)} sublabel={`${nCompletati} compl.`} variant="green" />
-          <Card label="Spese" value={`-${formatPrezzo(totaleSpese)}`} sublabel={`${spese?.length ?? 0} voci`} variant="red" />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
           <Card
-            label="Utile netto"
+            label="Imponibile"
+            value={formatPrezzo(fatturato)}
+            sublabel={`${nCompletati} compl.`}
+            variant="green"
+          />
+          <Card
+            label={`IVA ${(IVA_RATE * 100).toFixed(0)}%`}
+            value={formatPrezzo(ivaFatturato)}
+            sublabel="su fatturato"
+            variant="amber"
+          />
+          <Card
+            label="Spese"
+            value={`-${formatPrezzo(totaleSpese)}`}
+            sublabel={`${spese?.length ?? 0} voci`}
+            variant="red"
+          />
+          <Card
+            label="Utile (lordo)"
             value={formatPrezzo(utileNetto)}
             sublabel={`${margine.toFixed(1)}% margine`}
             variant={utileNetto >= 0 ? 'indigo' : 'red'}
@@ -175,21 +198,40 @@ export default async function ReportUtileNettoPage({ searchParams }) {
           )}
         </section>
 
-        <section className="mt-6 pt-4 border-t border-slate-200">
-          <div className="flex items-baseline justify-between">
-            <p className="font-semibold">Utile netto</p>
+        <section className="mt-6 pt-4 border-t border-slate-200 space-y-2">
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-slate-500">Imponibile fatturato</span>
+              <span className="tabular-nums">{formatPrezzo(fatturato)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-slate-500">+ IVA {(IVA_RATE * 100).toFixed(0)}%</span>
+              <span className="tabular-nums">{formatPrezzo(ivaFatturato)}</span>
+            </div>
+            <div className="flex justify-between font-medium pt-1 border-t border-slate-100">
+              <span>= Fatturato lordo</span>
+              <span className="tabular-nums">{formatPrezzo(fatturatoLordo)}</span>
+            </div>
+            <div className="flex justify-between text-red-700">
+              <span>− Spese</span>
+              <span className="tabular-nums">-{formatPrezzo(totaleSpese)}</span>
+            </div>
+          </div>
+
+          <div className="flex items-baseline justify-between pt-3 border-t-2 border-slate-300">
+            <p className="font-semibold">Utile (lordo)</p>
             <p
               className={
-                'text-2xl font-bold ' +
+                'text-2xl font-bold tabular-nums ' +
                 (utileNetto >= 0 ? 'text-indigo-700' : 'text-red-700')
               }
             >
               {formatPrezzo(utileNetto)}
             </p>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Fatturato {formatPrezzo(fatturato)} − Spese {formatPrezzo(totaleSpese)} ={' '}
-            <span className="font-medium">{formatPrezzo(utileNetto)}</span>
+          <p className="text-xs text-slate-500">
+            Utile sul solo imponibile (al netto IVA da versare):{' '}
+            <span className="font-medium">{formatPrezzo(utileImponibile)}</span>
           </p>
         </section>
       </div>
@@ -202,6 +244,7 @@ function Card({ label, value, sublabel, variant }) {
     green: 'bg-green-50 border-green-200 text-green-800',
     red: 'bg-red-50 border-red-200 text-red-800',
     indigo: 'bg-indigo-50 border-indigo-200 text-indigo-800',
+    amber: 'bg-amber-50 border-amber-200 text-amber-800',
   }
   return (
     <div className={`rounded-xl border p-3 ${styles[variant] ?? ''}`}>
