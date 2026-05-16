@@ -9,6 +9,7 @@ import {
   totaleLordo,
 } from '@/lib/dates'
 import PrintButton from '@/components/PrintButton'
+import { inviaReportMensile } from '../actions'
 
 const TIPI = [
   { value: 'ritiro', label: 'Ritiro' },
@@ -121,8 +122,34 @@ export default async function ReportMensilePage({ searchParams }) {
             Mostra
           </button>
         </form>
-        <PrintButton />
+        <div className="flex items-center gap-2">
+          <form action={inviaReportMensile}>
+            <input type="hidden" name="mese" value={mese} />
+            <button
+              type="submit"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 text-white text-sm font-medium px-3 py-2 hover:bg-indigo-700"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                <polyline points="22,6 12,13 2,6" />
+              </svg>
+              Invia email
+            </button>
+          </form>
+          <PrintButton />
+        </div>
       </div>
+
+      {sp?.error && (
+        <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm p-3 print:hidden">
+          {sp.error}
+        </div>
+      )}
+      {sp?.info && (
+        <div className="rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-sm p-3 print:hidden">
+          {sp.info}
+        </div>
+      )}
 
       <div className="rounded-2xl bg-white shadow p-5 print:shadow-none print:p-0">
         <header className="mb-4 flex items-baseline justify-between gap-3 flex-wrap">
