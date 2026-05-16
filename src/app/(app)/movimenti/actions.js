@@ -169,6 +169,30 @@ export async function aggiornaMovimento(id, formData) {
   redirect(`/movimenti/${id}?info=` + encodeURIComponent('Modifiche salvate.'))
 }
 
+export async function aggiornaTipoMovimento(formData) {
+  const id = get(formData, 'id')
+  const tipo = get(formData, 'tipo')
+
+  if (!id || !tipo || !TIPI.includes(tipo)) {
+    redirect(`/movimenti/${id ?? ''}?error=` + encodeURIComponent('Tipo non valido.'))
+  }
+
+  const supabase = await createClient()
+  const { error } = await supabase
+    .from('movimenti')
+    .update({ tipo })
+    .eq('id', id)
+
+  if (error) {
+    redirect(`/movimenti/${id}?error=` + encodeURIComponent(error.message))
+  }
+
+  revalidatePath('/movimenti')
+  revalidatePath(`/movimenti/${id}`)
+  revalidatePath('/dashboard')
+  redirect(`/movimenti/${id}?info=` + encodeURIComponent('Tipo aggiornato.'))
+}
+
 export async function aggiornaStatoMovimento(formData) {
   const id = get(formData, 'id')
   const stato = get(formData, 'stato')

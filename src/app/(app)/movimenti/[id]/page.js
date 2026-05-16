@@ -5,6 +5,7 @@ import DeleteButton from '@/components/DeleteButton'
 import {
   aggiornaMovimento,
   aggiornaStatoMovimento,
+  aggiornaTipoMovimento,
   eliminaMovimento,
   iniziaTracking,
   terminaTracking,
@@ -114,6 +115,29 @@ export default async function MovimentoPage({ params, searchParams }) {
         />
       )}
 
+      {!compagnia && (
+        <div className="rounded-2xl bg-white shadow p-5 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-semibold">Tipo</h2>
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+              {TIPO_LABEL[movimento.tipo] ?? movimento.tipo}
+            </span>
+          </div>
+          <form action={aggiornaTipoMovimento} className="grid grid-cols-3 gap-2">
+            <input type="hidden" name="id" value={movimento.id} />
+            <TypeBtn name="tipo" value="ritiro" current={movimento.tipo}>
+              Ritiro
+            </TypeBtn>
+            <TypeBtn name="tipo" value="consegna" current={movimento.tipo}>
+              Consegna
+            </TypeBtn>
+            <TypeBtn name="tipo" value="ritiro_consegna" current={movimento.tipo}>
+              R + C
+            </TypeBtn>
+          </form>
+        </div>
+      )}
+
       <div className="rounded-2xl bg-white shadow p-5 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <h2 className="font-semibold">Stato</h2>
@@ -209,6 +233,26 @@ function Row({ label, value }) {
       <p className="text-slate-500">{label}</p>
       <p className="font-medium">{value}</p>
     </div>
+  )
+}
+
+function TypeBtn({ name, value, current, children }) {
+  const active = value === current
+  return (
+    <button
+      type="submit"
+      name={name}
+      value={value}
+      disabled={active}
+      className={[
+        'rounded-lg px-3 py-2.5 text-xs font-semibold transition-colors disabled:cursor-not-allowed',
+        active
+          ? 'bg-indigo-600 text-white ring-2 ring-offset-1 ring-indigo-600'
+          : 'bg-slate-100 text-slate-700 hover:bg-slate-200 active:bg-slate-300',
+      ].join(' ')}
+    >
+      {children}
+    </button>
   )
 }
 
