@@ -53,6 +53,21 @@ export default async function VeicoloPage({ params, searchParams }) {
         </a>
       )}
 
+      {(veicolo.foto_fianco_dx_url ||
+        veicolo.foto_fianco_sx_url ||
+        veicolo.foto_anteriore_url ||
+        veicolo.foto_posteriore_url) && (
+        <div className="rounded-2xl bg-white shadow p-4">
+          <p className="text-sm font-semibold mb-3">Foto veicolo</p>
+          <div className="grid grid-cols-2 gap-3">
+            <FotoCard url={veicolo.foto_fianco_dx_url} label="Fianco destro" />
+            <FotoCard url={veicolo.foto_fianco_sx_url} label="Fianco sinistro" />
+            <FotoCard url={veicolo.foto_anteriore_url} label="Anteriore" />
+            <FotoCard url={veicolo.foto_posteriore_url} label="Posteriore" />
+          </div>
+        </div>
+      )}
+
       {sp?.error && (
         <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm p-3">
           {sp.error}
@@ -92,6 +107,33 @@ export default async function VeicoloPage({ params, searchParams }) {
         </div>
       )}
     </div>
+  )
+}
+
+function FotoCard({ url, label }) {
+  if (!url) {
+    return (
+      <div className="aspect-[4/3] rounded-lg border border-dashed border-slate-300 bg-slate-50 flex items-center justify-center text-[10px] text-slate-400">
+        {label} (assente)
+      </div>
+    )
+  }
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="block space-y-1"
+    >
+      <div className="aspect-[4/3] rounded-lg overflow-hidden bg-slate-100">
+        <img
+          src={url}
+          alt={label}
+          className="w-full h-full object-cover"
+        />
+      </div>
+      <p className="text-[10px] text-slate-500 text-center">{label}</p>
+    </a>
   )
 }
 

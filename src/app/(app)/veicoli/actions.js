@@ -16,6 +16,10 @@ function readForm(formData) {
     modello: get('modello'),
     note: get('note'),
     foto_targa_url: get('targa_foto'),
+    foto_fianco_dx_url: get('foto_fianco_dx_url'),
+    foto_fianco_sx_url: get('foto_fianco_sx_url'),
+    foto_anteriore_url: get('foto_anteriore_url'),
+    foto_posteriore_url: get('foto_posteriore_url'),
   }
 }
 
