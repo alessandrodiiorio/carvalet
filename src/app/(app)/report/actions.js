@@ -37,7 +37,12 @@ async function assertTitolareEmail() {
   if (!user.email) {
     redirect('/report/giornaliero?error=' + encodeURIComponent('Email non disponibile.'))
   }
-  return { supabase, email: user.email }
+  const { data: imp } = await supabase
+    .from('impostazioni_app')
+    .select('logo_url')
+    .eq('id', 1)
+    .maybeSingle()
+  return { supabase, email: user.email, logoUrl: imp?.logo_url ?? null }
 }
 
 function tabella(headers, rows) {
@@ -77,7 +82,7 @@ export async function inviaReportGiornaliero(formData) {
   const data =
     (formData.get('data') || '').toString().trim() || oggiItaliaYmd()
 
-  const { supabase, email } = await assertTitolareEmail()
+  const { supabase, email, logoUrl } = await assertTitolareEmail()
   const { da, a } = boundsGiornoIso(data)
 
   const [{ data: movimenti }, { data: tariffe }] = await Promise.all([
@@ -126,6 +131,7 @@ export async function inviaReportGiornaliero(formData) {
   const html = htmlPagina(
     `Report giornaliero · ${formatDataLunga(data)}`,
     `<p style="color:#64748b">${movimenti?.length ?? 0} movimenti</p>${tabHtml}${riepilogoTotali(imponibile, 'Totale fatturato')}`,
+    logoUrl,
   )
 
   try {
@@ -151,7 +157,7 @@ export async function inviaReportMensile(formData) {
   const mese =
     (formData.get('mese') || '').toString().trim() || meseItaliaYm()
 
-  const { supabase, email } = await assertTitolareEmail()
+  const { supabase, email, logoUrl } = await assertTitolareEmail()
   const { da, a } = boundsMeseIso(mese)
 
   const [{ data: movimenti }, { data: tariffe }] = await Promise.all([
@@ -205,6 +211,7 @@ export async function inviaReportMensile(formData) {
   const html = htmlPagina(
     `Report mensile · ${formatMeseLungo(mese)}`,
     `${tabHtml}${riepilogoTotali(totaleGenerale, 'Totale generale')}`,
+    logoUrl,
   )
 
   try {
@@ -226,7 +233,7 @@ export async function inviaReportUtileNetto(formData) {
   const mese =
     (formData.get('mese') || '').toString().trim() || meseItaliaYm()
 
-  const { supabase, email } = await assertTitolareEmail()
+  const { supabase, email, logoUrl } = await assertTitolareEmail()
   const { da, a } = boundsMeseIso(mese)
   const [y, m] = mese.split('-').map(Number)
   const primoGiorno = `${mese}-01`
@@ -299,6 +306,7 @@ export async function inviaReportUtileNetto(formData) {
   const html = htmlPagina(
     `Utile netto · ${formatMeseLungo(mese)}`,
     body,
+    logoUrl,
   )
 
   try {
