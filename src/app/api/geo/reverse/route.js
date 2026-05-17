@@ -1,6 +1,6 @@
 // Nominatim reverse geocoding: lat/lon -> indirizzo.
 
-const USER_AGENT = 'CarValet/1.0 (https://carvalet.vercel.app)'
+const USER_AGENT = 'DriverSolution2025/1.0 (https://driversolution2025.vercel.app)'
 
 export const revalidate = 3600
 

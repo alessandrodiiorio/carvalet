@@ -1,7 +1,7 @@
 // Nominatim search proxy. Respect usage policy (User-Agent + rate limit).
 // Cache risultati per query (1h).
 
-const USER_AGENT = 'CarValet/1.0 (https://carvalet.vercel.app)'
+const USER_AGENT = 'DriverSolution2025/1.0 (https://driversolution2025.vercel.app)'
 
 export const revalidate = 3600
 
