@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/server'
 import { signup } from './actions'
 
 export default async function SignupPage({ searchParams }) {
@@ -6,12 +7,30 @@ export default async function SignupPage({ searchParams }) {
   const error = params?.error
   const info = params?.info
 
+  const supabase = await createClient()
+  const { data: imp } = await supabase
+    .from('impostazioni_app')
+    .select('logo_url, nome_azienda')
+    .eq('id', 1)
+    .maybeSingle()
+  const nomeAzienda = imp?.nome_azienda || 'Car Valet'
+  const logoUrl = imp?.logo_url || null
+
   return (
     <main className="min-h-dvh flex items-center justify-center p-6 bg-slate-50">
       <div className="w-full max-w-sm bg-white rounded-2xl shadow p-6 space-y-5">
-        <div>
-          <h1 className="text-2xl font-bold">Car Valet</h1>
-          <p className="text-sm text-slate-500">Crea un nuovo account</p>
+        <div className="text-center space-y-3">
+          {logoUrl && (
+            <img
+              src={logoUrl}
+              alt="Logo"
+              className="mx-auto max-h-20 max-w-full object-contain"
+            />
+          )}
+          <div>
+            <h1 className="text-2xl font-bold">{nomeAzienda}</h1>
+            <p className="text-sm text-slate-500">Crea un nuovo account</p>
+          </div>
         </div>
 
         {error && (
