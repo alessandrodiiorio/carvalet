@@ -32,10 +32,29 @@ export async function inviaEmail({ to, subject, html, from }) {
 }
 
 // Helpers HTML per email report
-export function htmlPagina(titolo, body, logoUrl = null) {
+export function htmlPagina(titolo, body, logoUrl = null, anagrafica = null) {
   const logo = logoUrl
     ? `<div style="text-align:center;margin-bottom:16px"><img src="${logoUrl}" alt="Logo" style="max-height:60px;max-width:200px"></div>`
     : ''
+  const nome = anagrafica?.nome_azienda || 'Car Valet'
+  const indirizzoParts = [
+    anagrafica?.indirizzo,
+    [anagrafica?.cap, anagrafica?.citta, anagrafica?.provincia ? `(${anagrafica.provincia})` : null]
+      .filter(Boolean)
+      .join(' '),
+  ].filter(Boolean)
+  const pivaFc = [
+    anagrafica?.partita_iva ? `P.IVA ${anagrafica.partita_iva}` : null,
+    anagrafica?.codice_fiscale ? `CF ${anagrafica.codice_fiscale}` : null,
+  ].filter(Boolean)
+  const contatti = [anagrafica?.telefono, anagrafica?.email_contatto].filter(Boolean)
+  const footerLines = [
+    `<strong>${nome}</strong>`,
+    indirizzoParts.length > 0 ? indirizzoParts.join(' · ') : null,
+    pivaFc.length > 0 ? pivaFc.join(' · ') : null,
+    contatti.length > 0 ? contatti.join(' · ') : null,
+  ].filter(Boolean).join('<br>')
+
   return `<!doctype html>
 <html lang="it"><head><meta charset="utf-8"><title>${titolo}</title></head>
 <body style="margin:0;padding:24px;background:#f8fafc;color:#0f172a;font-family:Arial,Helvetica,sans-serif">
@@ -43,7 +62,9 @@ export function htmlPagina(titolo, body, logoUrl = null) {
     ${logo}
     <h1 style="margin:0 0 16px;font-size:20px;color:#0f172a">${titolo}</h1>
     ${body}
-    <p style="margin-top:32px;font-size:11px;color:#94a3b8">Car Valet · generato automaticamente</p>
+    <div style="margin-top:32px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:11px;color:#64748b;line-height:1.5">
+      ${footerLines}
+    </div>
   </div>
 </body></html>`
 }

@@ -11,10 +11,11 @@ export default async function AppLayout({ children }) {
 
   const { data: impostazioni } = await supabase
     .from('impostazioni_app')
-    .select('logo_url')
+    .select('logo_url, nome_azienda')
     .eq('id', 1)
     .maybeSingle()
   const logoUrl = impostazioni?.logo_url || null
+  const nomeAzienda = impostazioni?.nome_azienda || 'Car Valet'
 
   return (
     <div className="min-h-dvh flex flex-col bg-gradient-to-b from-slate-50 to-slate-100">
@@ -39,7 +40,7 @@ export default async function AppLayout({ children }) {
             )}
             <div className="min-w-0">
               <p className="text-base font-bold leading-tight tracking-tight truncate">
-                Car Valet
+                {nomeAzienda}
               </p>
               <p className="text-xs text-indigo-200/90 truncate">
                 {nome} · <span className="capitalize">{ruolo}</span>
