@@ -82,11 +82,72 @@ button {
 }
 
 @media print {
-  body {
-    background: white !important;
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
   }
+
+  html,
+  body {
+    overflow: visible !important;
+    background: white !important;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  body {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
   main {
     padding: 0 !important;
     max-width: none !important;
+    width: 100% !important;
+  }
+
+  /* Annulla max-width tailwind in print, evita tagli bordo destro */
+  .max-w-3xl,
+  .max-w-2xl,
+  .max-w-xl,
+  .max-w-lg,
+  .max-w-sm {
+    max-width: none !important;
+    width: 100% !important;
+  }
+
+  /* Card senza ombre / bordi spessi, padding ridotto */
+  .shadow,
+  .shadow-md,
+  .shadow-lg {
+    box-shadow: none !important;
+  }
+
+  /* Tabelle full-width */
+  table {
+    width: 100% !important;
+    page-break-inside: auto !important;
+  }
+  tr {
+    page-break-inside: avoid !important;
+    page-break-after: auto !important;
+  }
+  thead {
+    display: table-header-group !important;
+  }
+  tfoot {
+    display: table-footer-group !important;
+  }
+
+  /* Permetti page-break dopo grandi sezioni */
+  section {
+    page-break-inside: auto;
+  }
+
+  /* No interferenza con scrollbar */
+  .overflow-auto,
+  .overflow-y-auto,
+  .overflow-x-auto {
+    overflow: visible !important;
   }
 }
