@@ -1,6 +1,6 @@
 import ModelloPicker from '@/components/ModelloPicker'
 import TargaInput from '@/components/TargaInput'
-import FotoVeicoloInput from '@/components/FotoVeicoloInput'
+import MultiFotoInput from '@/components/MultiFotoInput'
 
 export default function VeicoloForm({
   action,
@@ -45,31 +45,11 @@ export default function VeicoloForm({
         required
       />
 
-      <fieldset className="space-y-2">
-        <legend className="text-sm font-semibold">Foto veicolo</legend>
-        <div className="grid grid-cols-2 gap-3">
-          <FotoVeicoloInput
-            name="foto_fianco_dx_url"
-            label="Fianco destro"
-            defaultUrl={v.foto_fianco_dx_url ?? ''}
-          />
-          <FotoVeicoloInput
-            name="foto_fianco_sx_url"
-            label="Fianco sinistro"
-            defaultUrl={v.foto_fianco_sx_url ?? ''}
-          />
-          <FotoVeicoloInput
-            name="foto_anteriore_url"
-            label="Anteriore"
-            defaultUrl={v.foto_anteriore_url ?? ''}
-          />
-          <FotoVeicoloInput
-            name="foto_posteriore_url"
-            label="Posteriore"
-            defaultUrl={v.foto_posteriore_url ?? ''}
-          />
-        </div>
-      </fieldset>
+      <MultiFotoInput
+        name="foto_aggiuntive_urls"
+        label="Foto aggiuntive"
+        defaultUrls={v.foto_aggiuntive_urls ?? []}
+      />
 
       <div>
         <label htmlFor="note" className="block text-sm font-medium mb-1">

@@ -10,16 +10,27 @@ function readForm(formData) {
     return v && v.toString().trim() !== '' ? v.toString().trim() : null
   }
   const targa = get('targa')
+  const aggRaw = formData.get('foto_aggiuntive_urls')
+  let foto_aggiuntive_urls = []
+  if (aggRaw) {
+    try {
+      const parsed = JSON.parse(aggRaw.toString())
+      if (Array.isArray(parsed)) {
+        foto_aggiuntive_urls = parsed.filter(
+          (u) => typeof u === 'string' && u.length > 0,
+        )
+      }
+    } catch {
+      foto_aggiuntive_urls = []
+    }
+  }
   return {
     compagnia_id: get('compagnia_id'),
     targa: targa ? targa.toUpperCase().replace(/\s+/g, '') : null,
     modello: get('modello'),
     note: get('note'),
     foto_targa_url: get('targa_foto'),
-    foto_fianco_dx_url: get('foto_fianco_dx_url'),
-    foto_fianco_sx_url: get('foto_fianco_sx_url'),
-    foto_anteriore_url: get('foto_anteriore_url'),
-    foto_posteriore_url: get('foto_posteriore_url'),
+    foto_aggiuntive_urls,
   }
 }
 
