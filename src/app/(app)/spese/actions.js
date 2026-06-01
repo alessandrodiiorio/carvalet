@@ -13,20 +13,22 @@ function readForm(formData) {
     data: get('data'),
     importo: get('importo'),
     motivazione: get('motivazione'),
+    dipendente_id: get('dipendente_id'),
   }
 }
 
-const MOTIVAZIONI_VALIDE = [
-  'Spesa carburante',
-  'Spesa giornaliera dipendente',
-]
+const MOTIVAZIONE_DIPENDENTE = 'Spesa giornaliera dipendente'
+const MOTIVAZIONI_VALIDE = ['Spesa carburante', MOTIVAZIONE_DIPENDENTE]
 
-function valida({ data, importo, motivazione }) {
+function valida({ data, importo, motivazione, dipendente_id }) {
   if (!data || !/^\d{4}-\d{2}-\d{2}$/.test(data)) return 'Data non valida.'
   const n = Number(importo?.replace(',', '.'))
   if (!Number.isFinite(n) || n <= 0) return 'Importo deve essere maggiore di 0.'
   if (!motivazione || !MOTIVAZIONI_VALIDE.includes(motivazione)) {
     return 'Motivazione non valida.'
+  }
+  if (motivazione === MOTIVAZIONE_DIPENDENTE && !dipendente_id) {
+    return 'Seleziona dipendente.'
   }
   return null
 }
@@ -47,6 +49,8 @@ export async function creaSpesa(formData) {
     data: dati.data,
     importo: Number(dati.importo.replace(',', '.')),
     motivazione: dati.motivazione,
+    dipendente_id:
+      dati.motivazione === MOTIVAZIONE_DIPENDENTE ? dati.dipendente_id : null,
     creato_da: user?.id ?? null,
   })
 

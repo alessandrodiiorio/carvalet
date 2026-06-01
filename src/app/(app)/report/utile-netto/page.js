@@ -53,7 +53,8 @@ export default async function ReportUtileNettoPage({ searchParams }) {
       .from('spese')
       .select(`
         id, data, importo, motivazione,
-        creato:profili ( nome )
+        creato:profili!spese_creato_da_fkey ( nome ),
+        dipendente:profili!spese_dipendente_id_fkey ( nome )
       `)
       .gte('data', primoGiorno)
       .lte('data', ultimoGiorno)
@@ -203,7 +204,12 @@ export default async function ReportUtileNettoPage({ searchParams }) {
                     <td className="py-1.5 font-mono text-[11px] whitespace-nowrap">
                       {formatDataBreve(s.data)}
                     </td>
-                    <td className="py-1.5">{s.motivazione}</td>
+                    <td className="py-1.5">
+                      {s.motivazione}
+                      {s.dipendente?.nome && (
+                        <span className="text-slate-500"> · {s.dipendente.nome}</span>
+                      )}
+                    </td>
                     <td className="py-1.5 text-xs text-slate-500">
                       {s.creato?.nome ?? '—'}
                     </td>

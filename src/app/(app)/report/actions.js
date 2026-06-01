@@ -259,7 +259,11 @@ export async function inviaReportUtileNetto(formData) {
       supabase.from('tariffe').select('compagnia_id, tipo, prezzo'),
       supabase
         .from('spese')
-        .select(`id, data, importo, motivazione, creato:profili ( nome )`)
+        .select(`
+          id, data, importo, motivazione,
+          creato:profili!spese_creato_da_fkey ( nome ),
+          dipendente:profili!spese_dipendente_id_fkey ( nome )
+        `)
         .gte('data', primoGiorno)
         .lte('data', ultimoGiorno)
         .order('data', { ascending: true }),
@@ -289,7 +293,9 @@ export async function inviaReportUtileNetto(formData) {
 
   const speseRows = (spese ?? []).map((s) => [
     s.data,
-    s.motivazione,
+    s.dipendente?.nome
+      ? `${s.motivazione} · <strong>${s.dipendente.nome}</strong>`
+      : s.motivazione,
     s.creato?.nome ?? '—',
     `<span style="color:#b91c1c">-${formatPrezzo(Number(s.importo))}</span>`,
   ])

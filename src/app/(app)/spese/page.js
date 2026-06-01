@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getUtente, isTitolare, isCompagnia } from '@/lib/auth'
 import { formatPrezzo, oggiItaliaYmd } from '@/lib/dates'
 import DeleteButton from '@/components/DeleteButton'
+import SpesaForm from './SpesaForm'
 import { creaSpesa, eliminaSpesa } from './actions'
 
 export const metadata = {
@@ -27,14 +28,25 @@ export default async function SpesePage({ searchParams }) {
   const error = params?.error
   const info = params?.info
 
-  const { data: spese, error: loadError } = await supabase
-    .from('spese')
-    .select(`
-      id, data, importo, motivazione, created_at, creato_da,
-      creato:profili ( nome )
-    `)
-    .order('data', { ascending: false })
-    .order('created_at', { ascending: false })
+  const [
+    { data: spese, error: loadError },
+    { data: profili },
+  ] = await Promise.all([
+    supabase
+      .from('spese')
+      .select(`
+        id, data, importo, motivazione, dipendente_id, created_at, creato_da,
+        creato:profili!spese_creato_da_fkey ( nome ),
+        dipendente:profili!spese_dipendente_id_fkey ( nome )
+      `)
+      .order('data', { ascending: false })
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('profili')
+      .select('id, nome, ruolo')
+      .in('ruolo', ['titolare', 'collaboratore'])
+      .order('nome'),
+  ])
 
   const totale = (spese ?? []).reduce((s, x) => s + Number(x.importo), 0)
 
@@ -66,67 +78,11 @@ export default async function SpesePage({ searchParams }) {
         </div>
       )}
 
-      <form
-        action={creaSpesa}
-        className="rounded-2xl bg-white shadow p-4 space-y-3"
-      >
-        <p className="font-semibold text-sm">Nuova spesa</p>
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label htmlFor="data" className="block text-xs font-medium mb-1">
-              Data *
-            </label>
-            <input
-              id="data"
-              name="data"
-              type="date"
-              defaultValue={oggiItaliaYmd()}
-              required
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
-            />
-          </div>
-          <div>
-            <label htmlFor="importo" className="block text-xs font-medium mb-1">
-              Importo (€) *
-            </label>
-            <input
-              id="importo"
-              name="importo"
-              type="number"
-              step="0.01"
-              min="0.01"
-              required
-              placeholder="0,00"
-              inputMode="decimal"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono focus:outline-none focus:ring-2 focus:ring-slate-900"
-            />
-          </div>
-        </div>
-        <div>
-          <label htmlFor="motivazione" className="block text-xs font-medium mb-1">
-            Motivazione *
-          </label>
-          <select
-            id="motivazione"
-            name="motivazione"
-            required
-            defaultValue=""
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
-          >
-            <option value="" disabled>Seleziona</option>
-            <option value="Spesa carburante">Spesa carburante</option>
-            <option value="Spesa giornaliera dipendente">
-              Spesa giornaliera dipendente
-            </option>
-          </select>
-        </div>
-        <button
-          type="submit"
-          className="w-full rounded-lg bg-slate-900 text-white font-semibold py-2.5 hover:bg-slate-800 transition-colors"
-        >
-          Registra spesa
-        </button>
-      </form>
+      <SpesaForm
+        azione={creaSpesa}
+        profili={profili ?? []}
+        dataOggi={oggiItaliaYmd()}
+      />
 
       {spese?.length === 0 && (
         <div className="rounded-2xl bg-white shadow p-6 text-center text-sm text-slate-500">
@@ -151,7 +107,12 @@ export default async function SpesePage({ searchParams }) {
                     -{formatPrezzo(Number(s.importo))}
                   </p>
                 </div>
-                <p className="font-medium mt-0.5 truncate">{s.motivazione}</p>
+                <p className="font-medium mt-0.5 truncate">
+                  {s.motivazione}
+                  {s.dipendente?.nome && (
+                    <span className="text-slate-500"> · {s.dipendente.nome}</span>
+                  )}
+                </p>
                 {titolare && (
                   <p className="text-[10px] text-slate-400 mt-0.5">
                     {proprio}
