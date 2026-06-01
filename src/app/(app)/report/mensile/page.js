@@ -43,6 +43,12 @@ export default async function ReportMensilePage({ searchParams }) {
     tariffeIdx[`${t.compagnia_id}:${t.tipo}`] = Number(t.prezzo)
   }
 
+  // Riepilogo globale per tipologia
+  const riepilogoGlobale = TIPI.reduce((acc, t) => {
+    acc[t.value] = { conteggio: 0, completati: 0, fatturato: 0 }
+    return acc
+  }, {})
+
   const compagnie = {}
   for (const m of movimenti ?? []) {
     const cid = m.veicoli?.compagnia_id
@@ -71,15 +77,19 @@ export default async function ReportMensilePage({ searchParams }) {
 
     const c = compagnie[cid]
     const slot = c.tipi[m.tipo]
+    const gSlot = riepilogoGlobale[m.tipo]
     if (slot) {
       slot.conteggio++
       c.totaleMovimenti++
+      if (gSlot) gSlot.conteggio++
       if (m.stato === 'completato') {
         slot.completati++
         c.totaleCompletati++
+        if (gSlot) gSlot.completati++
         if (slot.prezzo != null) {
           slot.fatturato += slot.prezzo
           c.totale += slot.prezzo
+          if (gSlot) gSlot.fatturato += slot.prezzo
         }
       }
       c.dettagli.push({
@@ -188,6 +198,45 @@ export default async function ReportMensilePage({ searchParams }) {
             Nessun movimento in questo mese.
           </p>
         )}
+
+        <section className="mb-6 rounded-xl border border-slate-200 bg-slate-50 p-3">
+          <h3 className="font-semibold text-sm mb-2">Riepilogo per tipologia</h3>
+          <table className="w-full text-sm border-collapse">
+            <thead>
+              <tr className="border-b border-slate-300 text-slate-500">
+                <th className="text-left py-1 font-normal">Tipo</th>
+                <th className="text-right py-1 font-normal">Tot.</th>
+                <th className="text-right py-1 font-normal">Compl.</th>
+                <th className="text-right py-1 font-normal">Fatturato</th>
+              </tr>
+            </thead>
+            <tbody>
+              {TIPI.map((t) => {
+                const r = riepilogoGlobale[t.value]
+                return (
+                  <tr key={t.value} className="border-b border-slate-200">
+                    <td className="py-1.5">{t.label}</td>
+                    <td className="text-right py-1.5">{r.conteggio}</td>
+                    <td className="text-right py-1.5">{r.completati}</td>
+                    <td className="text-right py-1.5 font-medium">
+                      {formatPrezzo(r.fatturato)}
+                    </td>
+                  </tr>
+                )
+              })}
+              <tr className="font-bold">
+                <td className="py-1.5">Totale generale</td>
+                <td className="text-right py-1.5">
+                  {Object.values(riepilogoGlobale).reduce((s, x) => s + x.conteggio, 0)}
+                </td>
+                <td className="text-right py-1.5">
+                  {Object.values(riepilogoGlobale).reduce((s, x) => s + x.completati, 0)}
+                </td>
+                <td className="text-right py-1.5">{formatPrezzo(totaleGenerale)}</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
 
         <div className="space-y-6">
           {compagnieArr.map((c) => (
