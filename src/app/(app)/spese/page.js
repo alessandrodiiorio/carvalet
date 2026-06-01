@@ -106,14 +106,19 @@ export default async function SpesePage({ searchParams }) {
           <label htmlFor="motivazione" className="block text-xs font-medium mb-1">
             Motivazione *
           </label>
-          <input
+          <select
             id="motivazione"
             name="motivazione"
-            type="text"
             required
-            placeholder="Es. Carburante, autostrada, pranzo..."
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-slate-900"
-          />
+            defaultValue=""
+            className="w-full rounded-lg border border-slate-300 px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-900"
+          >
+            <option value="" disabled>Seleziona</option>
+            <option value="Spesa carburante">Spesa carburante</option>
+            <option value="Spesa giornaliera dipendente">
+              Spesa giornaliera dipendente
+            </option>
+          </select>
         </div>
         <button
           type="submit"

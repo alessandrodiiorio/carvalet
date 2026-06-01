@@ -16,11 +16,18 @@ function readForm(formData) {
   }
 }
 
+const MOTIVAZIONI_VALIDE = [
+  'Spesa carburante',
+  'Spesa giornaliera dipendente',
+]
+
 function valida({ data, importo, motivazione }) {
   if (!data || !/^\d{4}-\d{2}-\d{2}$/.test(data)) return 'Data non valida.'
   const n = Number(importo?.replace(',', '.'))
   if (!Number.isFinite(n) || n <= 0) return 'Importo deve essere maggiore di 0.'
-  if (!motivazione) return 'Motivazione obbligatoria.'
+  if (!motivazione || !MOTIVAZIONI_VALIDE.includes(motivazione)) {
+    return 'Motivazione non valida.'
+  }
   return null
 }
 
