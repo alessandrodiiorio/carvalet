@@ -1,9 +1,21 @@
 import { redirect } from 'next/navigation'
 import { getUtente, isTitolare, isCompagnia } from '@/lib/auth'
-import { formatPrezzo, oggiItaliaYmd } from '@/lib/dates'
+import {
+  formatPrezzo,
+  oggiItaliaYmd,
+  meseItaliaYm,
+  formatMeseLungo,
+} from '@/lib/dates'
 import DeleteButton from '@/components/DeleteButton'
 import SpesaForm from './SpesaForm'
 import { creaSpesa, eliminaSpesa } from './actions'
+
+function boundsMese(ym) {
+  const [y, m] = ym.split('-').map(Number)
+  const primo = `${ym}-01`
+  const ultimo = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10)
+  return { primo, ultimo }
+}
 
 export const metadata = {
   title: 'Spese',
@@ -27,6 +39,10 @@ export default async function SpesePage({ searchParams }) {
   const params = await searchParams
   const error = params?.error
   const info = params?.info
+  const mese = params?.mese && /^\d{4}-\d{2}$/.test(params.mese)
+    ? params.mese
+    : meseItaliaYm()
+  const { primo, ultimo } = boundsMese(mese)
 
   const [
     { data: spese, error: loadError },
@@ -39,6 +55,8 @@ export default async function SpesePage({ searchParams }) {
         creato:profili!spese_creato_da_fkey ( nome ),
         dipendente:profili!spese_dipendente_id_fkey ( nome )
       `)
+      .gte('data', primo)
+      .lte('data', ultimo)
       .order('data', { ascending: false })
       .order('created_at', { ascending: false }),
     supabase
@@ -52,15 +70,38 @@ export default async function SpesePage({ searchParams }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <h1 className="text-xl font-bold">Spese</h1>
         <div className="text-right">
           <p className="text-[10px] uppercase text-slate-500 font-semibold">
-            Totale
+            Totale mese
           </p>
           <p className="font-bold">{formatPrezzo(totale)}</p>
         </div>
       </div>
+
+      <form className="rounded-2xl bg-white shadow p-3 flex items-center gap-2">
+        <label htmlFor="mese" className="text-xs font-medium text-slate-600">
+          Mese
+        </label>
+        <input
+          id="mese"
+          name="mese"
+          type="month"
+          defaultValue={mese}
+          className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm"
+        />
+        <button
+          type="submit"
+          className="rounded-lg bg-slate-900 text-white text-sm font-medium px-3 py-2 hover:bg-slate-800"
+        >
+          Mostra
+        </button>
+      </form>
+
+      <p className="text-xs text-slate-500 capitalize">
+        {formatMeseLungo(mese)}
+      </p>
 
       {error && (
         <div className="rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm p-3">
